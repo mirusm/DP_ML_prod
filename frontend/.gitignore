@@ -26,3 +26,8 @@ dist-ssr
 # Python bullshit
 __pycache__/
 *.py[cod]
+
+# Environment files
+.env
+.env.development
+.env.production
