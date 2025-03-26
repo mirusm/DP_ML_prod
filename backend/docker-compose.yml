@@ -1,4 +1,4 @@
-version: '3.12'
+version: '3.8'
 
 services:
   backend:
@@ -11,7 +11,7 @@ services:
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
     volumes:
       - .:/app
-      - sqlite_data:/app
+      - sqlite_data:/app/db  # Mount to /app/db instead of /app
     networks:
       - app-network
 
