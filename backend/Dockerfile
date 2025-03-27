@@ -5,8 +5,8 @@ FROM python:3.9-slim
 WORKDIR /app
 
 # Set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 # Install system dependencies for RDKit and other libraries
 RUN apt-get update && apt-get install -y \
