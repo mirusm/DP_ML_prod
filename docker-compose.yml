@@ -17,7 +17,7 @@ services:
 
   frontend:
     build:
-      context: ../frontend
+      context: /root/code/TP/frontend
       dockerfile: Dockerfile
     container_name: react_frontend
     depends_on:
