@@ -10,7 +10,7 @@ services:
       - DEBUG=False
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
     volumes:
-      - .:/app
+      - ./backend:/app
       - sqlite_data:/app/db  # Mount to /app/db instead of /app
     networks:
       - app-network
