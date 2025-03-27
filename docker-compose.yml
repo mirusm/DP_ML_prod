@@ -45,8 +45,8 @@ services:
     image: certbot/certbot
     container_name: certbot
     volumes:
-      - ./nginx/certbot:/var/www/certbot
-      - ./nginx/letsencrypt:/etc/letsencrypt
+      - ./backend/nginx/certbot:/var/www/certbot
+      - ./backend/nginx/letsencrypt:/etc/letsencrypt
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
     depends_on:
       - nginx
