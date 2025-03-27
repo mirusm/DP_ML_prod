@@ -29,5 +29,3 @@ __pycache__/
 
 # Environment files
 .env
-.env.development
-.env.production
