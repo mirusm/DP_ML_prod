@@ -9,6 +9,7 @@ const SignUpPage = () => {
   const [password, setPassword] = useState("");
   const [createUserWithEmailAndPassword, , loadingAuth, errorAuth] = useCreateUserWithEmailAndPassword(auth);
   const navigate = useNavigate();
+  const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000/api'; // Fallback for local development
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -21,7 +22,7 @@ const SignUpPage = () => {
     try {
       const res = await createUserWithEmailAndPassword(email, password);
       if (res?.user) {
-        const response = await fetch('http://127.0.0.1:8000/api/register/', {
+        const response = await fetch(`${API_URL}/register/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -28,6 +28,8 @@ const HistoryPage = () => {
   const [filterColumn, setFilterColumn] = useState("all");
   const rowsPerPage = 9;
   const navigate = useNavigate();
+  const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000/api'; // Fallback for local development
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -39,7 +41,7 @@ const HistoryPage = () => {
           return;
         }
 
-        const response = await fetch("http://127.0.0.1:8000/api/prediction-history/", {
+        const response = await fetch(`${API_URL}/prediction-history/`, {
           headers: {
             "User-Id": userId,
           },
@@ -133,7 +135,7 @@ const HistoryPage = () => {
     }
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/prediction/${predictionToDelete.id}/delete/`, {
+      const response = await fetch(`${API_URL}/prediction/${predictionToDelete.id}/delete/`, {
         method: "DELETE",
         headers: {
           "User-Id": userId,

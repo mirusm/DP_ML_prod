@@ -10,6 +10,7 @@ const DashboardPage = () => {
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000/api'; // Fallback for local development
 
   useEffect(() => {
     fetchLastPredictions();
@@ -23,7 +24,7 @@ const DashboardPage = () => {
         return;
       }
 
-      const response = await fetch("http://127.0.0.1:8000/api/prediction-history/", {
+      const response = await fetch(`${API_URL}/prediction-history/`, {
         headers: {
           "User-Id": userId,
         },

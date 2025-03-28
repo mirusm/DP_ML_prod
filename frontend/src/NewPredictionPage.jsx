@@ -14,6 +14,8 @@ const NewPredictionPage = ({ onResults }) => {
   const [errorMessage, setErrorMessage] = useState("");
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
+  const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000/api'; // Fallback for local development
+
 
   const toggleProfileMenu = () => {
     setIsProfileOpen(!isProfileOpen);
@@ -54,7 +56,7 @@ const NewPredictionPage = ({ onResults }) => {
     try {
       let allResults = [];
       for (const entry of pipelineEntries) {
-        const response = await fetch("http://127.0.0.1:8000/api/upload/", {
+        const response = await fetch(`${API_URL}/upload/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

@@ -11,7 +11,7 @@ const ProfilePage = () => {
   const [userInfo, setUserInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const currentUser = auth.currentUser;
-
+  const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000/api'; // Fallback for local development
   const previousPage = location.state?.from || "/";
 
   useEffect(() => {
@@ -29,7 +29,7 @@ const ProfilePage = () => {
         return;
       }
 
-      const response = await fetch("http://127.0.0.1:8000/api/get_user_info/", {
+      const response = await fetch(`${API_URL}/get_user_info/`, {
         headers: {
           "User-Id": userId,
           "Email": email,

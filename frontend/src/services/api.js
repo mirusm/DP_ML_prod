@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { auth } from '../firebase/firebase';
 
-const API_URL = process.env.REACT_APP_API_URL || 'https://49.12.65.96/api'; // Fallback for local dev without .env
+const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000/api';  // Fallback for local dev without .env
 
 const getAuthHeader = async () => {
   const user = auth.currentUser;

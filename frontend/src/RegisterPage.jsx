@@ -7,6 +7,7 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000/api'; // Fallback for local development
 
   const handleRegister = async (e) => {
     e.preventDefault(); 
@@ -19,7 +20,7 @@ const RegisterPage = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('http://127.0.0.1:8000/api/register/', {
+      const response = await fetch(`${API_URL}/register/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

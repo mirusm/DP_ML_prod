@@ -10,6 +10,8 @@ const SignInPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000/api'; // Fallback for local development
+
 
   const handleSignIn = async (e) => {
     e.preventDefault(); 
@@ -25,7 +27,7 @@ const SignInPage = () => {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user; 
 
-      const response = await fetch('http://127.0.0.1:8000/api/get_user_info/', {
+      const response = await fetch(`${API_URL}/get_user_info/`, {
         method: 'GET',
         headers: {
           'Email': email 
