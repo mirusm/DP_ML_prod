@@ -52,8 +52,8 @@ TEMPLATES = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    "http://49.12.65.96",
-    "https://49.12.65.96",
+    "http://49.12.65.96:3000",
+    "https://49.12.65.96:3000",
     "http://localhost:3000",
     "http://localhost:5173",
     "http://192.168.0.235:3000",
