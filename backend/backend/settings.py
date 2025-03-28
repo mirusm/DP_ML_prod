@@ -56,6 +56,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://49.12.65.96",
     "http://localhost:3000",
     "http://localhost:5173",
+    "http://192.168.0.235:3000",
 ]
 
 CORS_ALLOW_HEADERS = list(default_headers) + [
