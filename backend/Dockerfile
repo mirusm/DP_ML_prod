@@ -1,5 +1,5 @@
 # Use an official Python runtime as the base image
-FROM python:3.9-slim
+FROM python:3.12-slim
 
 # Set working directory
 WORKDIR /app
@@ -14,6 +14,10 @@ RUN apt-get update && apt-get install -y \
     libboost-python-dev \
     libboost-system-dev \
     libboost-thread-dev \
+    libxrender1 \
+    libxext6 \
+    libfrontcofig1 \
+    libcairo2 \
     cmake \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
