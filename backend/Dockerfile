@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y \
     libboost-thread-dev \
     libxrender1 \
     libxext6 \
-    libfrontcofig1 \
+    libfontconfig1 \
     libcairo2 \
     cmake \
     && apt-get clean \
