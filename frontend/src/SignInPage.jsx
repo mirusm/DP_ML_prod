@@ -11,6 +11,7 @@ const SignInPage = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const API_URL = import.meta.env.VITE_API_URL  || 'http://127.0.0.1:8000/api'; // Fallback for local development
+  console.log('API_URL being used:', API_URL); // Debug line to check the resolved URL
 
 
   const handleSignIn = async (e) => {
