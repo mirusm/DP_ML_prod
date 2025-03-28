@@ -18,7 +18,7 @@ export default defineConfig({
       proxy: {
       // Target is your backend API
         '/api': {
-            target: process.env.VITE_API_URL || 'http://127.0.0.1:8000', // Default to local if not defined
+            target: 'http://127.0.0.1:8000', // Default to local if not defined
             changeOrigin: true,
             rewrite: (path) => path.replace(/^\/api/, ''),
             

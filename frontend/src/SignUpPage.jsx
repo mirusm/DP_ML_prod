@@ -9,7 +9,7 @@ const SignUpPage = () => {
   const [password, setPassword] = useState("");
   const [createUserWithEmailAndPassword, , loadingAuth, errorAuth] = useCreateUserWithEmailAndPassword(auth);
   const navigate = useNavigate();
-  const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000/api'; // Fallback for local development
+  const API_URL = import.meta.env.VITE_API_URL  || 'http://127.0.0.1:8000/api'; // Fallback for local development
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
