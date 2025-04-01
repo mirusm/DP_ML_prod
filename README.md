@@ -74,9 +74,37 @@ This ML-Powered QSAR full-stack web tool is built with Python, Django (backend),
 
 ## 🚀 Deployment
 
-### 📌 Backend deployment
+The app is deployed on Hetzner's VPS on IP 49.12.65.96. For deployment were used Dockerfiles on Frontend and Backend together with Nginx.
+See docker-compose.yml file in the root folder.
 
+   ```sh
+   
+   git clone <repo> # in the /root/code/TP directory
+
+   cd /root/code/TP/ML_production
+
+   sudo docker compose up --build -d 
+   ```
+
+When volumes needed to be cleared:
+   ```sh
+   cd /root/code/TP/ML_production
+
+   sudo docker compose down -v
+
+   sudo docker system prune -a --volumes
+
+   cd ..
+
+   rm -r ML_production
+   # and again make git clone with building project
+   ```
+
+### 📌 Backend deployment
+See Dockerfile and nginx folder with nginx.conf in the backend directory.
 ### 📌 Frontend deployment
+See Dockerfile in the frontend directory.
+
 ---
 
 ## 📚 Learn more

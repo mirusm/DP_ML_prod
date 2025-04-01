@@ -7,7 +7,8 @@ export default defineConfig({
 
   base: "./",  // <-- Add this line
 
-  plugins: [    tailwindcss(),
+  plugins: [    
+    tailwindcss(),
     react()],
     define: {
       'process.env': {}, // Fixes "process is not defined"

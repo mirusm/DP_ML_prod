@@ -28,8 +28,7 @@ const HistoryPage = () => {
   const [filterColumn, setFilterColumn] = useState("all");
   const rowsPerPage = 9;
   const navigate = useNavigate();
-  const API_URL = import.meta.env.VITE_API_URL  || 'http://127.0.0.1:8000/api'; // Fallback for local development
-
+  const API_URL = import.meta.env.VITE_API_URL  || 'http://127.0.0.1:8000/api';
 
   useEffect(() => {
     const fetchData = async () => {

@@ -20,7 +20,7 @@ const LandingPage = () => {
         <div className="flex items-center container mx-auto">
           <div className="w-1/2 hero-container">
             <h1 className="text-4xl font-bold mb-4">
-              ML-Powered <span class="text-blue-600">QSAR</span> Web Tool for Predicting ALR1 & ALR2 Inhibiting Efficacy
+              ML-Powered <span className="text-blue-600">QSAR</span> Web Tool for Predicting ALR1 & ALR2 Inhibiting Efficacy
             </h1>
             <p className="text-gray-700 mb-6">
               Our ML-Powered QSAR Web Tool leverages machine learning models to predict the inhibitor efficacy of ALR1 and ALR2.
