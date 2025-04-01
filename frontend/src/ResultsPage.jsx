@@ -11,7 +11,7 @@ const ResultPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedResult, setSelectedResult] = useState(singleResult);
   const [showImagePopup, setShowImagePopup] = useState(false);
-  const [popupImageSrc, setPopupImageSrc] = useState(""); 
+  const [popupImageSrc, setPopupImageSrc] = useState("");
   const resultsPerPage = 5;
 
   const formatNumber = (num, decimals = 4) => {
@@ -61,14 +61,14 @@ const ResultPage = () => {
   };
 
   const handleImageClick = (imageSrc) => {
-    setPopupImageSrc(imageSrc); 
-    setShowImagePopup(true);    
+    setPopupImageSrc(imageSrc);
+    setShowImagePopup(true);
   };
 
   const handleClosePopup = (e) => {
     if (e.target === e.currentTarget) {
       setShowImagePopup(false);
-      setPopupImageSrc(""); 
+      setPopupImageSrc("");
     }
   };
 
@@ -95,7 +95,7 @@ const ResultPage = () => {
         <Sidebar />
         <div className="flex-1 p-6 ml-64 overflow-y-auto">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-black">Prediction result details</h2>
+            <h2 className="text-2xl font-bold text-blue-700">Prediction result details</h2>
             {results.length > 0 && (
               <button
                 onClick={handleBackToList}
@@ -109,7 +109,7 @@ const ResultPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-black">
             <div className="space-y-6">
               <div className="bg-white p-4 rounded-lg shadow">
-                <h3 className="font-bold mb-2">Basic information</h3>
+                <h3 className="font-bold mb-2 text-green-600">Basic information</h3>
                 <div className="space-y-2">
                   <p>
                     <span className="font-semibold">SMILES:</span> {selectedResult.smiles || "N/A"}
@@ -148,7 +148,7 @@ const ResultPage = () => {
 
               {selectedResult.properties && (
                 <div className="bg-white p-4 rounded-lg shadow">
-                  <h3 className="font-bold mb-2">Molecular properties</h3>
+                  <h3 className="font-bold mb-2 text-green-600">Molecular properties</h3>
                   <div className="space-y-2">
                     <p>
                       <span className="font-semibold">Num. heavy atoms:</span>{" "}
@@ -189,7 +189,7 @@ const ResultPage = () => {
 
               {selectedResult.descriptors && (
                 <div className="bg-white p-4 rounded-lg shadow">
-                  <h3 className="font-bold mb-2">Molecular descriptors</h3>
+                  <h3 className="font-bold mb-2 text-green-600">Molecular descriptors</h3>
                   <div className="space-y-2">
                     {Object.entries(selectedResult.descriptors).map(([key, descriptor]) => (
                       <div key={key}>
@@ -210,7 +210,7 @@ const ResultPage = () => {
             <div className="space-y-6">
               {selectedResult.moleculeImage && (
                 <div className="bg-white p-4 rounded-lg shadow">
-                  <h3 className="font-bold mb-2">Molecule structure</h3>
+                  <h3 className="font-bold mb-2 text-green-600">Molecule structure</h3>
                   <img
                     src={`data:image/png;base64,${selectedResult.moleculeImage}`}
                     alt="Molecule structure"
@@ -222,7 +222,7 @@ const ResultPage = () => {
 
               {selectedResult.shap_plot && (
                 <div className="bg-white p-4 rounded-lg shadow">
-                  <h3 className="font-bold mb-2">SHAP analysis - Top features</h3>
+                  <h3 className="font-bold mb-2 text-green-600">SHAP analysis - Top features</h3>
                   <img
                     src={`data:image/png;base64,${selectedResult.shap_plot}`}
                     alt="SHAP plot - top features"
@@ -265,7 +265,7 @@ const ResultPage = () => {
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
       <div className="flex-1 p-6 ml-64 overflow-y-auto">
-        <h2 className="text-2xl font-bold mb-6 text-black">Prediction results</h2>
+        <h2 className="text-2xl font-bold mb-6 text-blue-700">Prediction results</h2>
 
         <div className="bg-white rounded-lg shadow p-6">
           <table className="w-full text-left border-collapse">

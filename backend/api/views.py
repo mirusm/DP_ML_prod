@@ -22,7 +22,11 @@ from .functions import (
     get_molecular_properties,
     get_molecule_info,
     smiles_to_iupac,
-    prepare_xsmiles_data
+    load_dataset,
+    find_cas_in_dataset,
+    find_smiles_in_dataset,
+    cas_validation,
+    find_iupac_in_dataset
 )
 
 def home(request):
@@ -51,9 +55,7 @@ def get_prediction_history(request):
         'descriptors': item.descriptors,
         'shap_plot': item.shap_plot,
         'plot_all': item.plot_all,
-        'user_id': item.user_id,
-        'xsmiles_data': item.xsmiles_data 
-
+        'user_id': item.user_id
     } for item in history]
     return JsonResponse(data, safe=False)
 
@@ -71,13 +73,33 @@ def delete_prediction(request, prediction_id):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
+def resolve_smiles_from_cas(cas):
+    if not cas_validation(cas):
+        return "Error: Invalid CAS number"
+    smiles = cas_to_smiles(cas)
+    if not smiles:
+        df = load_dataset("data/DATASET.xlsx")
+        smiles = find_smiles_in_dataset(cas, df)
+        if smiles == "N/A":
+            return "N/A"
+    return smiles
+
+def resolve_iupac_from_smiles(smiles):
+    iupac_name = smiles_to_iupac(smiles)
+    if not iupac_name:
+        df = load_dataset("data/DATASET.xlsx")
+        iupac_name = find_iupac_in_dataset(smiles, df)
+        if iupac_name == "N/A":
+            return "N/A"
+    return iupac_name
+
 @api_view(['POST'])
 def upload_dataset(request):
     smiles = request.data.get('smiles')
     cas = request.data.get('cas')
     inputType = request.data.get('inputType')
-    model_name = request.data.get('model', 'ALR2')  # Default to 'ALR2' if not provided
-    user_id = request.headers.get('User-Id')  # Get user_id from request headers
+    model_name = request.data.get('model', 'ALR2') 
+    user_id = request.headers.get('User-Id')  
     
     if not user_id:
         return JsonResponse({"error": "User ID is required"}, status=400)
@@ -87,7 +109,7 @@ def upload_dataset(request):
     print(f"SMILES: {smiles}")
     
     if inputType == 'CAS':
-        smiles = cas_to_smiles(cas)
+        smiles = resolve_smiles_from_cas(cas)
         if smiles.startswith("Error"):
             return JsonResponse({
                 "error": smiles
@@ -97,64 +119,40 @@ def upload_dataset(request):
         try:
             cas = cirpy.resolve(smiles, "cas")
             if not cas:
-                cas = "N/A"
+                df = load_dataset("data/DATASET.xlsx")
+                cas = find_cas_in_dataset(smiles, df)
         except Exception as e:
-            cas = "N/A"
+            cas = find_cas_in_dataset(smiles, df)
 
-    # Convert SMILES to molecular structure
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return JsonResponse({
-            "error": "Invalid SMILES string"
+            "error": "Invalid SMILES/CAS string"
         }, status=400)
 
-    # Generate molecular descriptors and prediction
-    if model_name == 'ALR2':
-        mol, prediction, descriptors, message, plot_all, plot_top, shap_values = predict_svr(smiles, model_path="models/svr_model_alr2.pkl", train_data_path="data/x_train_data.csv")
-    if model_name == 'ALR1':
+    if model_name == 'ALR2': # ALR2 is the default model
+        mol, prediction, descriptors, message, plot_all, plot_top = predict_svr(smiles, model_path="models/svr_model_alr2.pkl", train_data_path="data/x_train_data.csv")
+    if model_name == 'ALR1': # will be added in the future
         mol, prediction, descriptors, message, plot_all, plot_top = predict_xgboost(smiles, model_path=f"models/xgboost_model_{model_name.lower()}.json", train_data_path="data/x_train_data.csv")
+    
     if mol is None:
         return JsonResponse({
             "error": message
         }, status=400)
-
-
-    # Extract atom and token scores
-    num_atoms = mol.GetNumAtoms()
-    atom_scores = shap_values[0][:num_atoms].tolist() if shap_values[0].size >= num_atoms else [0.0] * num_atoms
-    token_scores = shap_values[0][:len(smiles)].tolist() if shap_values[0].size >= len(smiles) else [0.0] * len(smiles)
-
+  
     info = get_molecule_info(mol,prediction)
     properties = get_molecular_properties(mol)
-    iupac_name = smiles_to_iupac(smiles)
-    print("IUPAC name",iupac_name)
+    iupac_name = resolve_iupac_from_smiles(smiles)
     info["iupac_name"] = iupac_name
+
+    print("IUPAC name",iupac_name)
     print(info)
     print(properties)
     print(descriptors)
     #print(shap_results)
 
     mol_image_base64 = visualize_molecule_withoutSmiles(mol)
-    prediction_temp = PredictionHistory(
-        user_id=user_id,
-        smiles=smiles,
-        cas=cas,
-        model_name=model_name,
-        prediction=float(prediction),
-        efficiency=info['efficiency'],
-        molecule_image=mol_image_base64,
-        formula=info['formula'],
-        iupac_name=info.get('iupac_name'),
-        properties=properties,
-        descriptors=descriptors,
-        shap_plot=plot_top,
-        plot_all=plot_all,
-        atom_scores=atom_scores,
-        token_scores=token_scores,
-    )
-    xsmiles_data = prepare_xsmiles_data(prediction_temp)
-    print(xsmiles_data)
-    # Save to PredictionHistory
+
     PredictionHistory.objects.create(
         user_id=user_id,
         smiles=smiles,
@@ -168,10 +166,7 @@ def upload_dataset(request):
         properties=properties,
         descriptors=descriptors,
         shap_plot=plot_top,
-        plot_all=plot_all,
-        atom_scores=atom_scores,
-        token_scores=token_scores,
-        xsmiles_data=xsmiles_data
+        plot_all=plot_all
     )
     os.remove('shap_waterfall_all.png')
     os.remove('shap_waterfall_top10.png')
@@ -184,8 +179,7 @@ def upload_dataset(request):
         "info": info,
         "descriptors": descriptors,
         "properties": properties,
-        "shap_plot": plot_top,
-        "xsmiles_data": xsmiles_data
+        "shap_plot": plot_top
     })
 
 @api_view(['GET'])

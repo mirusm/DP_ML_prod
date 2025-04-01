@@ -16,6 +16,41 @@ import re
 import json
 import xgboost as xgb
 
+def load_dataset(file_path):
+    try:
+        df = pd.read_excel(file_path)
+        return df
+    except Exception as e:
+        print(f"Error loading dataset: {e}")
+        return None
+    
+def find_cas_in_dataset(smiles, df):
+    if df is None:
+        return "N/A"
+    match = df[df['SMILES'] == smiles]
+    if not match.empty:
+        return match['CAS'].iloc[0]
+    else:
+        return "N/A"
+    
+def find_smiles_in_dataset(cas, df):
+    if df is None:
+        return "N/A"
+    match = df[df['CAS'] == cas]
+    if not match.empty:
+        return match['SMILES'].iloc[0]
+    else:
+        return "N/A"
+
+def find_iupac_in_dataset(smiles, df):
+    if df is None:
+        return "N/A"
+    match = df[df['SMILES'] == smiles]
+    if not match.empty:
+        return match['IUPAC'].iloc[0]
+    else:
+        return "N/A"
+    
 def smiles_to_iupac(smiles):
     CACTUS = "https://cactus.nci.nih.gov/chemical/structure/{0}/{1}"
     rep = "iupac_name"
@@ -52,7 +87,6 @@ def visualize_molecule(smiles):
     mol = Chem.MolFromSmiles(smiles)
     if not mol:
         return None  
-
     img = Draw.MolToImage(mol, size=(800, 800))  
     buffered = BytesIO()
     img.save(buffered, format="PNG")  
@@ -218,7 +252,7 @@ def predict_svr(smiles, model_path, train_data_path):
     }
     
     return (mol, pred_value, important_descriptors, "Prediction successful",
-            encoded_all_features, encoded_top_10, shap_values)
+            encoded_all_features, encoded_top_10)
 
 # Visualize a molecule without the SMILES string
 def visualize_molecule_withoutSmiles(mol):
@@ -310,29 +344,3 @@ def determine_efficiency(prediction, threshold):
     else:
         return "Effective"
     
-
-def prepare_xsmiles_data(prediction):
- 
-    atom_scores = prediction.atom_scores if prediction.atom_scores else [0.0] * len(prediction.smiles)
-    token_scores = prediction.token_scores if prediction.token_scores else [0.0] * len(prediction.smiles)
-
-    mol = Chem.MolFromSmiles(prediction.smiles)
-    num_atoms = mol.GetNumAtoms() if mol else len(prediction.smiles)
-
-    small_molecule = {
-        'string': prediction.smiles,
-        'methods': [
-            {
-                'name': "Atom Attribution",
-                'scores': atom_scores[:num_atoms],
-                'attributes': {'Pred.': float(prediction.prediction)}
-            },
-            {
-                'name': "Token Attribution",
-                'scores': token_scores[:len(prediction.smiles)],
-                'attributes': {'Pred.': float(prediction.prediction)}
-            },
-        ],
-        'attributes': {'Truth': prediction.efficiency}  
-    }
-    return json.dumps([small_molecule])
