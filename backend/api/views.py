@@ -98,22 +98,18 @@ def upload_dataset(request):
     smiles = request.data.get('smiles')
     cas = request.data.get('cas')
     inputType = request.data.get('inputType')
-    model_name = request.data.get('model', 'ALR2') 
     user_id = request.headers.get('User-Id')  
-    
+
     if not user_id:
         return JsonResponse({"error": "User ID is required"}, status=400)
         
     print(f"CAS/SMILES: {inputType}")
-    print(f"Selected model: {model_name}")
     print(f"SMILES: {smiles}")
     
     if inputType == 'CAS':
         smiles = resolve_smiles_from_cas(cas)
         if smiles.startswith("Error"):
-            return JsonResponse({
-                "error": smiles
-            }, status=400)
+            return JsonResponse({"error": smiles}, status=400)
     if inputType == 'SMILES':
         smiles = smiles
         try:
@@ -126,30 +122,31 @@ def upload_dataset(request):
 
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
-        return JsonResponse({
-            "error": "Invalid SMILES/CAS string"
-        }, status=400)
-
-    if model_name == 'ALR2': # ALR2 is the default model
-        mol, prediction, descriptors, message, plot_all, plot_top = predict_svr(smiles, model_path="models/svr_model_alr2.pkl", train_data_path="data/x_train_data.csv")
-    if model_name == 'ALR1': # will be added in the future
-        mol, prediction, descriptors, message, plot_all, plot_top = predict_xgboost(smiles, model_path=f"models/xgboost_model_{model_name.lower()}.json", train_data_path="data/x_train_data.csv")
+        return JsonResponse({"error": "Invalid SMILES/CAS string"}, status=400)
     
-    if mol is None:
-        return JsonResponse({
-            "error": message
-        }, status=400)
-  
-    info = get_molecule_info(mol,prediction)
-    properties = get_molecular_properties(mol)
-    iupac_name = resolve_iupac_from_smiles(smiles)
-    info["iupac_name"] = iupac_name
+    # Predict with ALR2 (SVR)
+    mol_alr2, prediction_alr2, descriptors_alr2, message_alr2, plot_all_alr2, plot_top_alr2 = predict_svr(
+        smiles, model_path="models/svr_model_alr2.pkl", train_data_path="data/x_train_data.csv"
+    )
+    if mol_alr2 is None:
+        return JsonResponse({"error": message_alr2}, status=400)
 
-    print("IUPAC name",iupac_name)
-    print(info)
-    print(properties)
-    print(descriptors)
-    #print(shap_results)
+    # Predict with ALR1 (XGBoost)
+    mol_alr1, prediction_alr1, descriptors_alr1, message_alr1, plot_all_alr1, plot_top_alr1 = predict_svr(
+        smiles, model_path="models/svr_model_alr2.pkl", train_data_path="data/x_train_data.csv"
+    )
+    if mol_alr1 is None:
+        return JsonResponse({"error": message_alr1}, status=400)
+
+    # Gather info for both models
+    info_alr2 = get_molecule_info(mol_alr2, prediction_alr2)
+    properties_alr2 = get_molecular_properties(mol_alr2)
+    iupac_name = resolve_iupac_from_smiles(smiles)
+    info_alr2["iupac_name"] = iupac_name
+
+    info_alr1 = get_molecule_info(mol_alr1, prediction_alr1)
+    properties_alr1 = get_molecular_properties(mol_alr1)
+    info_alr1["iupac_name"] = iupac_name
 
     mol_image_base64 = visualize_molecule_withoutSmiles(mol)
 
@@ -157,29 +154,60 @@ def upload_dataset(request):
         user_id=user_id,
         smiles=smiles,
         cas=cas,
-        model_name=model_name,
-        prediction=float(prediction),
-        efficiency=info['efficiency'],
+        model_name="ALR2",
+        prediction=float(prediction_alr2),
+        efficiency=info_alr2['efficiency'],
         molecule_image=mol_image_base64,
-        formula=info['formula'],
-        iupac_name=info.get('iupac_name'),
-        properties=properties,
-        descriptors=descriptors,
-        shap_plot=plot_top,
-        plot_all=plot_all
+        formula=info_alr2['formula'],
+        iupac_name=info_alr2.get('iupac_name'),
+        properties=properties_alr2,
+        descriptors=descriptors_alr2,
+        shap_plot=plot_top_alr2,
+        plot_all=plot_all_alr2
     )
+
+    PredictionHistory.objects.create(
+        user_id=user_id,
+        smiles=smiles,
+        cas=cas,
+        model_name="ALR1",
+        prediction=float(prediction_alr1),
+        efficiency=info_alr1['efficiency'],
+        molecule_image=mol_image_base64,
+        formula=info_alr1['formula'],
+        iupac_name=info_alr1.get('iupac_name'),
+        properties=properties_alr1,
+        descriptors=descriptors_alr1,
+        shap_plot=plot_top_alr1,
+        plot_all=plot_all_alr1
+    )
+
     os.remove('shap_waterfall_all.png')
     os.remove('shap_waterfall_top10.png')
+
     return JsonResponse({
-        "molecule_image": mol_image_base64,
-        "smiles": smiles,
-        "cas": cas,
-        "inputType": inputType,
-        "prediction": str(prediction),
-        "info": info,
-        "descriptors": descriptors,
-        "properties": properties,
-        "shap_plot": plot_top
+        "ALR2": {
+            "molecule_image": mol_image_base64,
+            "smiles": smiles,
+            "cas": cas,
+            "inputType": inputType,
+            "prediction": str(prediction_alr2),
+            "info": info_alr2,
+            "descriptors": descriptors_alr2,
+            "properties": properties_alr2,
+            "shap_plot": plot_top_alr2
+        },
+        "ALR1": {
+            "molecule_image": mol_image_base64,
+            "smiles": smiles,
+            "cas": cas,
+            "inputType": inputType,
+            "prediction": str(prediction_alr1),
+            "info": info_alr1,
+            "descriptors": descriptors_alr1,
+            "properties": properties_alr1,
+            "shap_plot": plot_top_alr1
+        }
     })
 
 @api_view(['GET'])

@@ -177,8 +177,8 @@ const HistoryPage = () => {
       properties: prediction.properties,
       descriptors: prediction.descriptors,
       shap_plot: prediction.shap_plot,
-      xsmiles_data: prediction.xsmiles_data,
       date: prediction.date,
+      model_name: prediction.model_name,
       origin: "history",
     };
     navigate("/results", { state: mappedResult });

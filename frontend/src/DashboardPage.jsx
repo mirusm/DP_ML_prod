@@ -55,8 +55,8 @@ const DashboardPage = () => {
       properties: prediction.properties,
       descriptors: prediction.descriptors,
       shap_plot: prediction.shap_plot,
-      xsmiles_data: prediction.xsmiles_data,
       date: prediction.date,
+      model_name: prediction.model_name,
       origin: "dashboard",
     };
     navigate("/results", { state: mappedResult });

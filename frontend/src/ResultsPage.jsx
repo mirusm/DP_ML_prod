@@ -13,9 +13,10 @@ const ResultPage = () => {
   const [showImagePopup, setShowImagePopup] = useState(false);
   const [popupImageSrc, setPopupImageSrc] = useState("");
   const [showDescriptorPopup, setShowDescriptorPopup] = useState(false);
-  const [isClickedPopup, setIsClickedPopup] = useState(false); // New state to track click vs hover
+  const [isClickedPopup, setIsClickedPopup] = useState(false);
   const [descriptorInfo, setDescriptorInfo] = useState("");
   const [descriptorKey, setDescriptorKey] = useState("");
+  const [activeTab, setActiveTab] = useState("ALR1"); 
   const resultsPerPage = 5;
 
   const formatNumber = (num, decimals = 4) => {
@@ -24,10 +25,14 @@ const ResultPage = () => {
     return isNaN(number) ? "N/A" : number.toFixed(decimals);
   };
 
-  const totalPages = Math.ceil(results.length / resultsPerPage);
+  const alr2Results = results.filter((result) => result.model === "ALR2");
+  const alr1Results = results.filter((result) => result.model === "ALR1");
+
+  const currentResults = activeTab === "ALR1" ? alr1Results: alr2Results;
+  const totalPages = Math.ceil(currentResults.length / resultsPerPage);
   const startIndex = (currentPage - 1) * resultsPerPage;
   const endIndex = startIndex + resultsPerPage;
-  const paginatedResults = results.slice(startIndex, endIndex);
+  const paginatedResults = currentResults.slice(startIndex, endIndex);
 
   const formatFormula = (formula) => {
     if (!formula) return "N/A";
@@ -138,8 +143,9 @@ const ResultPage = () => {
     default: `This is a molecular descriptor calculated using RDKit. It represents a feature of the molecule used in the prediction model. Specific details depend on the descriptor type. For more information, refer to RDKit documentation or the model's feature definitions.`,
   };
 
+
   const handleShowDescriptorInfoHover = (key) => {
-    if (!isClickedPopup) { 
+    if (!isClickedPopup) {
       const info = descriptorDescriptions[key] || descriptorDescriptions.default;
       setDescriptorInfo(info);
       setDescriptorKey(key);
@@ -186,7 +192,9 @@ const ResultPage = () => {
         <Sidebar />
         <div className="flex-1 p-6 ml-64 overflow-y-auto">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-blue-700">Prediction result details</h2>
+            <h2 className="text-2xl font-bold text-blue-700">
+              Prediction result details - {selectedResult.model || selectedResult.model_name}
+            </h2>
             {results.length > 0 && (
               <button
                 onClick={handleBackToList}
@@ -382,6 +390,29 @@ const ResultPage = () => {
       <Sidebar />
       <div className="flex-1 p-6 ml-64 overflow-y-auto">
         <h2 className="text-2xl font-bold mb-6 text-blue-700">Prediction results</h2>
+
+        {/* Tabs for ALR2 and ALR1 */}
+        
+        <div className="mb-6">
+          <button
+            className={`px-4 py-2 rounded ${activeTab === "ALR1" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-800"}`}
+            onClick={() => {
+              setActiveTab("ALR1");
+              setCurrentPage(1);
+            }}
+          >
+            ALR1 Results
+          </button>
+          <button
+            className={`px-4 py-2 mr-2 rounded ${activeTab === "ALR2" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-800"}`}
+            onClick={() => {
+              setActiveTab("ALR2");
+              setCurrentPage(1);
+            }}
+          >
+            ALR2 Results
+          </button>
+        </div>
 
         <div className="bg-white rounded-lg shadow p-6">
           <table className="w-full text-left border-collapse">

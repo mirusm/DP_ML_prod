@@ -1,12 +1,12 @@
 import React, { useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom"; 
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const NewPredictionPage = ({ onResults }) => {
   const navigate = useNavigate();
-  const location = useLocation(); 
+  const location = useLocation();
   const [inputType, setInputType] = useState("SMILES");
   const [smiles, setSmiles] = useState("");
   const [cas, setCas] = useState("");
@@ -65,7 +65,6 @@ const NewPredictionPage = ({ onResults }) => {
             smiles: entry.smiles || "",
             cas: entry.cas || "",
             inputType: entry.type,
-            model: "ALR2",
           }),
         });
         const data = await response.json();
@@ -81,20 +80,36 @@ const NewPredictionPage = ({ onResults }) => {
 
       toast.success("Pipeline run successfully");
 
-      const formattedResults = allResults.map((result) => ({
-        date: new Date().toLocaleString(),
-        smiles: result.smiles,
-        cas: result.cas,
-        predictedValue: result.info.prediction,
-        efficiency: result.info.efficiency,
-        numHeavyAtoms: result.properties.num_heavy_atoms,
-        moleculeImage: result.molecule_image,
-        descriptors: result.descriptors,
-        properties: result.properties,
-        shap_plot: result.shap_plot,
-        xsmiles_data: result.xsmiles_data,
-        info: result.info,
-      }));
+      const formattedResults = allResults.flatMap((result) => [
+        {
+          date: new Date().toLocaleString(),
+          smiles: result.ALR2.smiles,
+          cas: result.ALR2.cas,
+          predictedValue: result.ALR2.info.prediction,
+          efficiency: result.ALR2.info.efficiency,
+          numHeavyAtoms: result.ALR2.properties.num_heavy_atoms,
+          moleculeImage: result.ALR2.molecule_image,
+          descriptors: result.ALR2.descriptors,
+          properties: result.ALR2.properties,
+          shap_plot: result.ALR2.shap_plot,
+          info: result.ALR2.info,
+          model: "ALR2",
+        },
+        {
+          date: new Date().toLocaleString(),
+          smiles: result.ALR1.smiles,
+          cas: result.ALR1.cas,
+          predictedValue: result.ALR1.info.prediction,
+          efficiency: result.ALR1.info.efficiency,
+          numHeavyAtoms: result.ALR1.properties.num_heavy_atoms,
+          moleculeImage: result.ALR1.molecule_image,
+          descriptors: result.ALR1.descriptors,
+          properties: result.ALR1.properties,
+          shap_plot: result.ALR1.shap_plot,
+          info: result.ALR1.info,
+          model: "ALR1",
+        },
+      ]);
 
       if (onResults) {
         onResults(formattedResults);
@@ -126,7 +141,7 @@ const NewPredictionPage = ({ onResults }) => {
               <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg">
                 <Link
                   to="/profile"
-                  state={{ from: location.pathname }} 
+                  state={{ from: location.pathname }}
                   className="block px-4 py-2 text-gray-800 hover:bg-gray-100"
                   onClick={() => setIsProfileOpen(false)}
                 >

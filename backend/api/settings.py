@@ -19,6 +19,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 # Alternatively, specify allowed origins
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Adjust this to your frontend URL
+    "http://localhost:3000",  
     "http://127.0.0.1:5173",
     "http://49.12.65.96:3000",
     "https://49.12.65.96:3000",
