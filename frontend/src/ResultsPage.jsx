@@ -446,7 +446,7 @@ const ResultPage = () => {
                   <td className="p-2">
                     <button
                       onClick={() => handleViewDetails(result)}
-                      className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                      className="bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700"
                     >
                       View details
                     </button>

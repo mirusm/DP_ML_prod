@@ -33,21 +33,20 @@ h1 {
   margin-bottom: 20px; /* Added margin for spacing */
 }
 
-button {
+button:not([class*="bg-"]) {
   border-radius: 8px;
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: oklch(0.546 0.245 262.881); /* Changed to match the 'Run' button color in the image */
+  background-color: oklch(0.546 0.245 262.881);
   cursor: pointer;
   transition: background-color 0.25s;
 }
-button:hover {
-  background-color: oklch(0.488 0.243 264.376); /* Slightly darker on hover, matching the sidebar button hover */
+button:not([class*="bg-"]):hover {
+  background-color: oklch(0.488 0.243 264.376);
 }
-
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;

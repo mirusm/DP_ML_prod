@@ -20,12 +20,34 @@ const NewPredictionPage = ({ onResults }) => {
     setIsProfileOpen(!isProfileOpen);
   };
 
+  // Handle input type change and clear the irrelevant field
+  const handleInputTypeChange = (e) => {
+    const newInputType = e.target.value;
+    setInputType(newInputType);
+    if (newInputType === "SMILES") {
+      setCas(""); // Clear CAS when switching to SMILES
+    } else if (newInputType === "CAS") {
+      setSmiles(""); // Clear SMILES when switching to CAS
+    }
+  };
+
   const handleAdd = () => {
-    if (!smiles && !cas) {
-      toast.error("SMILES or CAS code cannot be empty");
+    // Validate based on the current input type
+    if (inputType === "SMILES" && !smiles) {
+      toast.error("SMILES code cannot be empty");
       return;
     }
-    const entry = { smiles, cas, type: inputType };
+    if (inputType === "CAS" && !cas) {
+      toast.error("CAS code cannot be empty");
+      return;
+    }
+
+    // Create entry with only the relevant field based on inputType
+    const entry = {
+      smiles: inputType === "SMILES" ? smiles : "",
+      cas: inputType === "CAS" ? cas : "",
+      type: inputType,
+    };
     setPipelineEntries([entry, ...pipelineEntries]);
     setSmiles("");
     setCas("");
@@ -166,7 +188,7 @@ const NewPredictionPage = ({ onResults }) => {
               <select
                 className="w-full p-2 border border-gray-300 rounded text-black"
                 value={inputType}
-                onChange={(e) => setInputType(e.target.value)}
+                onChange={handleInputTypeChange} // Updated to use new handler
               >
                 <option>SMILES</option>
                 <option>CAS</option>
@@ -212,12 +234,12 @@ const NewPredictionPage = ({ onResults }) => {
               <tbody>
                 {pipelineEntries.map((entry, index) => (
                   <tr key={index}>
-                    <td className="p-2 text-gray-800">{entry.smiles}</td>
+                    <td className="p-2 text-gray-800">{entry.smiles || "-"}</td>
                     <td className="p-2 text-gray-800">{entry.cas || "-"}</td>
                     <td className="p-2">
                       <button
                         onClick={() => handleDelete(index)}
-                        className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                        className="bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700"
                       >
                         Delete
                       </button>
@@ -249,7 +271,7 @@ const NewPredictionPage = ({ onResults }) => {
           </button>
         </div>
       </main>
-      <ToastContainer />
+      <ToastContainer closeButton={false}/>
     </div>
   );
 };

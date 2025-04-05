@@ -159,7 +159,7 @@ const DashboardPage = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
                           onClick={() => handleViewResult(item)}
-                          className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+                          className="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600"
                         >
                           View
                         </button>
@@ -172,7 +172,7 @@ const DashboardPage = () => {
           )}
         </div>
       </main>
-      <ToastContainer />
+      <ToastContainer closeButton={false}/>
     </div>
   );
 };

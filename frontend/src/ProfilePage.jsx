@@ -67,7 +67,7 @@ const ProfilePage = () => {
             <p className="text-gray-600 mt-2">Loading profile...</p>
           </div>
         </main>
-        <ToastContainer />
+        <ToastContainer closeButton={false}/>
       </div>
     );
   }
@@ -86,7 +86,7 @@ const ProfilePage = () => {
             Go to login
           </Link>
         </main>
-        <ToastContainer />
+        <ToastContainer closeButton={false}/>
       </div>
     );
   }
@@ -127,7 +127,7 @@ const ProfilePage = () => {
           </Link>
         </div>
       </main>
-      <ToastContainer />
+      <ToastContainer closeButton={false}/>
     </div>
   );
 };

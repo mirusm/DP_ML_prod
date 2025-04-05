@@ -191,7 +191,7 @@ const HistoryPage = () => {
         <main className="flex-1 p-6 ml-64">
           <div>Loading predictions...</div>
         </main>
-        <ToastContainer />
+        <ToastContainer closeButton={false}/>
       </div>
     );
 
@@ -202,7 +202,7 @@ const HistoryPage = () => {
         <main className="flex-1 p-6 ml-64">
           <div>Error: {error}</div>
         </main>
-        <ToastContainer />
+        <ToastContainer closeButton={false}/>
       </div>
     );
 
@@ -371,7 +371,7 @@ const HistoryPage = () => {
             </div>
             <button
               onClick={handleClearFilter}
-              className="bg-gray-300 text-white px-4 py-2 rounded hover:bg-gray-400"
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
             >
               Clear filter
             </button>
@@ -448,13 +448,13 @@ const HistoryPage = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button
                             onClick={() => handleViewResult(item)}
-                            className="bg-blue-500 text-current text-white px-3 py-1 rounded hover:bg-blue-600"
+                            className="bg-blue-500 text-current text-white px-3 py-2 rounded hover:bg-blue-600"
                           >
                             View
                           </button>
                           <button
                             onClick={() => handleDeleteResult(item)}
-                            className="bg-red-500 text-current text-white px-3 py-1 rounded hover:bg-red-600 ml-2"
+                            className="bg-red-500 text-current text-white px-3 py-2 rounded hover:bg-red-600 ml-2"
                           >
                             Delete
                           </button>
@@ -486,7 +486,7 @@ const HistoryPage = () => {
           )}
         </div>
       </main>
-      <ToastContainer />
+      <ToastContainer closeButton={false}/>
     </div>
   );
 };
