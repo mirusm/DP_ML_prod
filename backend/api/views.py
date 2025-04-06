@@ -130,24 +130,26 @@ def upload_dataset(request):
     )
     if mol_alr2 is None:
         return JsonResponse({"error": message_alr2}, status=400)
-
-    # Predict with ALR1 (XGBoost)
+    
+    # uncomment this when you have the ALR1 model ready and make function for it
+    """
     mol_alr1, prediction_alr1, descriptors_alr1, message_alr1, plot_all_alr1, plot_top_alr1 = predict_svr(
         smiles, model_path="models/svr_model_alr2.pkl", train_data_path="data/x_train_data.csv"
     )
     if mol_alr1 is None:
         return JsonResponse({"error": message_alr1}, status=400)
-
+    """
     # Gather info for both models
     info_alr2 = get_molecule_info(mol_alr2, prediction_alr2)
     properties_alr2 = get_molecular_properties(mol_alr2)
     iupac_name = resolve_iupac_from_smiles(smiles)
     info_alr2["iupac_name"] = iupac_name
-
+    # uncomment this when you have the LR1 model ready
+    """
     info_alr1 = get_molecule_info(mol_alr1, prediction_alr1)
     properties_alr1 = get_molecular_properties(mol_alr1)
     info_alr1["iupac_name"] = iupac_name
-
+    """
     mol_image_base64 = visualize_molecule_withoutSmiles(mol)
 
     PredictionHistory.objects.create(
@@ -165,21 +167,21 @@ def upload_dataset(request):
         shap_plot=plot_top_alr2,
         plot_all=plot_all_alr2
     )
-
+    # change this to ALR1 when you have the model ready
     PredictionHistory.objects.create(
         user_id=user_id,
         smiles=smiles,
         cas=cas,
         model_name="ALR1",
-        prediction=float(prediction_alr1),
-        efficiency=info_alr1['efficiency'],
+        prediction=float(prediction_alr2),
+        efficiency=info_alr2['efficiency'],
         molecule_image=mol_image_base64,
-        formula=info_alr1['formula'],
-        iupac_name=info_alr1.get('iupac_name'),
-        properties=properties_alr1,
-        descriptors=descriptors_alr1,
-        shap_plot=plot_top_alr1,
-        plot_all=plot_all_alr1
+        formula=info_alr2['formula'],
+        iupac_name=info_alr2.get('iupac_name'),
+        properties=properties_alr2,
+        descriptors=descriptors_alr2,
+        shap_plot=plot_top_alr2,
+        plot_all=plot_all_alr2
     )
 
     os.remove('shap_waterfall_all.png')
@@ -197,16 +199,16 @@ def upload_dataset(request):
             "properties": properties_alr2,
             "shap_plot": plot_top_alr2
         },
-        "ALR1": {
+        "ALR1": { # change this to ALR1 when you have the model ready
             "molecule_image": mol_image_base64,
             "smiles": smiles,
             "cas": cas,
             "inputType": inputType,
-            "prediction": str(prediction_alr1),
-            "info": info_alr1,
-            "descriptors": descriptors_alr1,
-            "properties": properties_alr1,
-            "shap_plot": plot_top_alr1
+            "prediction": str(prediction_alr2),
+            "info": info_alr2,
+            "descriptors": descriptors_alr2,
+            "properties": properties_alr2,
+            "shap_plot": plot_top_alr2
         }
     })
 

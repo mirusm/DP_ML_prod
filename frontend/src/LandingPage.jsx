@@ -8,11 +8,19 @@ const LandingPage = () => {
         <div className="flex items-center space-x-2">
           <img src="/tp25-logo.png" alt="TP15" className="h-10 w-10" />
         </div>
-        <nav className="space-x-15 font-bold">
-          <Link to="/" className="text-blue-600 hover:underline text-sm font-bold">Home</Link>
-          <Link to="/project" className="text-blue-600 hover:underline text-sm font-bold">Project</Link>
-          <Link to="/about" className="text-blue-600 hover:underline text-sm font-bold">About</Link>
-          <Link to="/sign-in" className="text-blue-600 text-sm font-bold hover:underline">Login →</Link>
+        <nav className="space-x-6 font-bold">
+          <Link to="/" className="text-blue-800 hover:underline text-base font-bold px-2 py-1">
+            Home
+          </Link>
+          <a
+            href="http://147.175.151.128/"
+            className="text-blue-800 hover:underline text-base font-bold px-2 py-1"
+          >
+            Project
+          </a>
+          <Link to="/sign-in" className="text-blue-800 hover:underline text-base font-bold px-2 py-1">
+            Login →
+          </Link>
         </nav>
       </header>
 
@@ -42,7 +50,7 @@ const LandingPage = () => {
 
       {/* Footer */}
       <footer className="bg-blue-600 text-white text-center py-4 text-sm font-bold">
-        2025 TP15
+      © 2025 TP15 - DIACOMP. All rights reserved.
       </footer>
     </div>
   );

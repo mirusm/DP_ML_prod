@@ -20,7 +20,7 @@ const Sidebar = () => {
   return (
     <aside className="w-64 bg-blue-600 text-white p-4 flex flex-col space-y-4 fixed h-screen">
       <div className="flex justify-center mb-6">
-        <span className="text-lg font-bold">TP15</span>
+        <span className="text-lg font-bold">TP15 - DIACOMP</span>
       </div>
       <nav className="flex flex-col space-y-4">
         <Link to="/dashboard" className="flex items-center space-x-2 p-2 hover:bg-blue-700 rounded">

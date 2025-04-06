@@ -21,9 +21,22 @@ const ForgotPasswordPage = () => {
     }
   };
 
+  const handleBackToSignIn = () => {
+    navigate('/sign-in');
+  };
+
   return (
     <div className="flex h-screen">
-      <div className="w-1/2 flex items-center justify-center bg-white p-8">
+      <div className="w-1/2 flex items-center justify-center bg-white p-8 relative">
+        <div className="text-white">
+          <button
+            onClick={handleBackToSignIn}
+            className="absolute top-4 left-4 hover:underline text-current focus:outline-none"
+          >
+            ← Back
+          </button>
+        </div>
+
         <div className="w-full max-w-md">
           <h1 className="text-4xl font-bold mb-6 text-blue-600 text-center">Forgot password</h1>
           <p className="text-gray-500 text-sm mb-8 text-center">Enter your email to reset your password</p>
@@ -38,7 +51,7 @@ const ForgotPasswordPage = () => {
             onClick={handleForgotPassword}
             className="w-full p-4 bg-blue-600 text-white rounded text-lg hover:bg-blue-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            {sending ? "Sending Reset Email..." : "Send Reset Email"}
+            {sending ? "Sending Reset email..." : "Send Reset email"}
           </button>
           {error && (
             <p className="text-red-500 text-sm mt-4 text-center">
