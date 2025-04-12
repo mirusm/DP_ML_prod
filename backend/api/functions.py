@@ -140,7 +140,7 @@ def predict_xgboost(smiles, model_path, train_data_path):
     plt.savefig('shap_waterfall_all.png', dpi=300, bbox_inches='tight', facecolor='white')
     with open('shap_waterfall_all.png', 'rb') as image_file:
         encoded_all_features = base64.b64encode(image_file.read()).decode('utf-8')
-    plt.close()
+    plt.close('all')
     
     importance = np.abs(shap_values[0])
     feature_importance = pd.DataFrame({
@@ -159,7 +159,7 @@ def predict_xgboost(smiles, model_path, train_data_path):
     plt.savefig('shap_waterfall_top10.png', dpi=300, bbox_inches='tight', facecolor='white')
     with open('shap_waterfall_top10.png', 'rb') as image_file:
         encoded_top_10 = base64.b64encode(image_file.read()).decode('utf-8')
-    plt.close()
+    plt.close('all')
 
     important_descriptors = {
         feature: {
@@ -219,7 +219,7 @@ def predict_svr(smiles, model_path, train_data_path):
     plt.savefig('shap_waterfall_all.png', dpi=300, bbox_inches='tight', facecolor='white')
     with open('shap_waterfall_all.png', 'rb') as image_file:
         encoded_all_features = base64.b64encode(image_file.read()).decode('utf-8')
-    plt.close()
+    plt.close('all') 
     
     # Calculate feature importance and get top 10
     importance = np.abs(shap_values[0])
@@ -240,8 +240,8 @@ def predict_svr(smiles, model_path, train_data_path):
     plt.savefig('shap_waterfall_top10.png', dpi=300, bbox_inches='tight', facecolor='white')
     with open('shap_waterfall_top10.png', 'rb') as image_file:
         encoded_top_10 = base64.b64encode(image_file.read()).decode('utf-8')
-    plt.close()
-    
+    plt.close('all')  
+
     # Prepare important descriptors dictionary
     important_descriptors = {
         feature: {

@@ -215,10 +215,10 @@ const HistoryPage = () => {
     .map((item) => (typeof item.prediction === "number" ? item.prediction : 0))
     .filter((val) => val !== 0);
 
-  const dates = predictions.map((item) => new Date(item.date).toLocaleDateString("de-DE"));
+  const dates = predictions.map((item) => new Date(item.date).toLocaleDateString("de-DE")).reverse();
   const predictionsByDate = predictions.map((item) =>
     typeof item.prediction === "number" ? item.prediction : 0
-  );
+  ).reverse();
 
   const histogramData = predictionValues.length === 0
     ? {
@@ -278,6 +278,14 @@ const HistoryPage = () => {
             borderColor: "rgb(75, 192, 192)",
             tension: 0.1,
           },
+          {
+            label: "Effective/Not effective threshold",
+            data: [100], 
+            fill: false,
+            borderColor: "rgb(255, 99, 132)", 
+            borderDash: [5, 5],
+            tension: 0,
+          },
         ],
       }
     : predictions.length === 1
@@ -291,6 +299,14 @@ const HistoryPage = () => {
             borderColor: "rgb(75, 192, 192)",
             tension: 0.1,
           },
+          {
+            label: "Effective/Not effective threshold",
+            data: [100, 100], 
+            fill: false,
+            borderColor: "rgb(255, 99, 132)",
+            borderDash: [5, 5],
+            tension: 0,
+          },
         ],
       }
     : {
@@ -302,6 +318,14 @@ const HistoryPage = () => {
             fill: false,
             borderColor: "rgb(75, 192, 192)",
             tension: 0.1,
+          },
+          {
+            label: "Effective/Not effective threshold",
+            data: Array(dates.length).fill(100), 
+            fill: false,
+            borderColor: "rgb(255, 99, 132)", 
+            borderDash: [5, 5], 
+            tension: 0,
           },
         ],
       };
