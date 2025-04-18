@@ -14,6 +14,5 @@ class PredictionHistory(models.Model):
     properties = models.JSONField(null=True)
     descriptors = models.JSONField(null=True)
     shap_plot = models.TextField(null=True, blank=True)
-    plot_all = models.TextField(null=True, blank=True)
     class Meta:
         ordering = ['-date']

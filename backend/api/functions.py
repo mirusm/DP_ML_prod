@@ -13,8 +13,6 @@ import matplotlib.pyplot as plt
 import joblib
 import requests
 import re
-import json
-import xgboost as xgb
 
 def load_dataset(file_path):
     try:
@@ -81,7 +79,6 @@ def get_descriptors(mol):
     
     return pd.DataFrame([descriptor_values])
 
-
 # Visualize a molecule from a SMILES string
 def visualize_molecule(smiles):
     mol = Chem.MolFromSmiles(smiles)
@@ -92,90 +89,99 @@ def visualize_molecule(smiles):
     img.save(buffered, format="PNG")  
     return base64.b64encode(buffered.getvalue()).decode("utf-8")  
 
-# Load the model
-def load_model(model_path):
-    model = xgb.Booster()
-    model.load_model(model_path)
-    return model
+def getDescriptorsP(df, missing_value=0):
+    """
+    Get all descriptors from the whole df and return a pandas DataFrame.
+    """
+    descriptor_data = []
+    for _, row in df.iterrows():
+        smiles = row["SMILES"]
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            raise ValueError(f"Invalid SMILES string: {smiles}")
+
+        descriptor_list = {}
+        for name, func in Descriptors._descList:
+            try:
+                desc = func(mol)
+            except Exception as e:
+                desc = missing_value
+                print(f"Warning: Failed to compute descriptor {name}: {e}")
+            descriptor_list[name] = desc
+
+        descriptor_data.append(descriptor_list)
+
+    return pd.DataFrame(descriptor_data)
 
 def predict_xgboost(smiles, model_path, train_data_path):
-    # Define required features (from your training data)
-    REQUIRED_FEATURES = ['MaxAbsEStateIndex', 'MinEStateIndex', 'SPS', 'MolWt', 'BCUT2D_MWHI',
-       'HallKierAlpha', 'PEOE_VSA1', 'PEOE_VSA10', 'PEOE_VSA11', 'PEOE_VSA12',
-       'PEOE_VSA13', 'PEOE_VSA2', 'PEOE_VSA3', 'PEOE_VSA4', 'PEOE_VSA5',
-       'PEOE_VSA6', 'PEOE_VSA8', 'SMR_VSA1', 'SMR_VSA2', 'SMR_VSA3',
-       'SMR_VSA4', 'SMR_VSA5', 'SMR_VSA6', 'SMR_VSA7', 'SMR_VSA9',
-       'SlogP_VSA1', 'SlogP_VSA2', 'SlogP_VSA3', 'SlogP_VSA4', 'SlogP_VSA5',
-       'SlogP_VSA7', 'SlogP_VSA8', 'TPSA', 'EState_VSA2', 'EState_VSA3',
-       'EState_VSA4', 'EState_VSA5', 'EState_VSA6', 'EState_VSA7',
-       'EState_VSA8', 'EState_VSA9', 'VSA_EState2', 'VSA_EState3',
-       'VSA_EState4', 'VSA_EState5', 'VSA_EState7', 'VSA_EState9', 'NHOHCount',
-       'NumAmideBonds', 'fr_NH1', 'fr_alkyl_halide', 'fr_aryl_methyl',
-       'fr_ketone', 'fr_para_hydroxylation']
+    REQUIRED_FEATURES = [
+        'MaxAbsEStateIndex', 'MinEStateIndex', 'SPS', 'MolWt', 'BCUT2D_MWHI',
+        'HallKierAlpha', 'Ipc', 'PEOE_VSA1', 'PEOE_VSA10', 'PEOE_VSA11',
+        'PEOE_VSA12', 'PEOE_VSA13', 'PEOE_VSA14', 'PEOE_VSA2', 'PEOE_VSA3',
+        'PEOE_VSA4', 'PEOE_VSA5', 'PEOE_VSA6', 'PEOE_VSA7', 'PEOE_VSA8',
+        'PEOE_VSA9', 'SMR_VSA1', 'SMR_VSA2', 'SMR_VSA3', 'SMR_VSA4', 'SMR_VSA5',
+        'SMR_VSA6', 'SMR_VSA7', 'SMR_VSA9', 'SlogP_VSA1', 'SlogP_VSA2',
+        'SlogP_VSA3', 'SlogP_VSA4', 'SlogP_VSA5', 'SlogP_VSA7', 'TPSA',
+        'EState_VSA2', 'EState_VSA3', 'EState_VSA4', 'EState_VSA5',
+        'EState_VSA6', 'EState_VSA7', 'EState_VSA8', 'EState_VSA9',
+        'VSA_EState3', 'VSA_EState4', 'VSA_EState5', 'VSA_EState7',
+        'VSA_EState8', 'VSA_EState9', 'NHOHCount', 'NumAmideBonds', 'MolLogP',
+        'fr_Al_COO', 'fr_Ar_OH', 'fr_C_O', 'fr_NH1', 'fr_aniline',
+        'fr_aryl_methyl', 'fr_bicyclic', 'fr_ketone', 'fr_para_hydroxylation'
+    ]
 
-    mol = Chem.MolFromSmiles(smiles)
-    if mol is None:
-        return None, None, None, "Invalid SMILES", None, None
+    try:
+        df = pd.DataFrame({"SMILES": [smiles]})
+        desc_df = getDescriptorsP(df, missing_value=0)
+        
+        missing_features = [f for f in REQUIRED_FEATURES if f not in desc_df.columns]
+        if missing_features:
+            return None, None, None, f"Missing features: {missing_features}", None, None
 
-    descriptors = get_descriptors(mol)
-    model_input = descriptors[REQUIRED_FEATURES].copy()  # Make a copy in case of modifications
-    
-    model = load_model(model_path)
-    if train_data_path:
+        desc_df = desc_df[REQUIRED_FEATURES]
+        model = joblib.load(model_path)
         train_data = pd.read_csv(train_data_path)[REQUIRED_FEATURES]
-    else:
-        return None, None, None, "Training data not provided", None, None
-    
-    pred_value = model.predict(model_input)[0]
 
-    explainer = shap.KernelExplainer(model.predict, train_data)
-    shap_values = explainer.shap_values(model_input)
+        pred_value = int(model.predict(desc_df.values)[0])  # Class label (0 or 1)
+        # SHAP explanation using KernelExplainer
+        explainer = shap.KernelExplainer(lambda x: model.predict_proba(x)[:, 1], train_data.values)
+        shap_values = explainer.shap_values(desc_df.values)
+        matplotlib.use('Agg')
+        importance = np.abs(shap_values).mean(axis=0)
+        feature_importance = pd.DataFrame({
+            "Feature": REQUIRED_FEATURES,
+            "Importance": importance
+        }).sort_values(by="Importance", ascending=False)
+        top_10_features = feature_importance['Feature'].head(10).tolist()
+        
+        top_10_indices = [REQUIRED_FEATURES.index(f) for f in top_10_features]
+        plt.figure(figsize=(10, 6))
+        shap.waterfall_plot(shap.Explanation(
+            values=shap_values[0][top_10_indices],
+            base_values=explainer.expected_value,
+            data=desc_df.iloc[0][top_10_features],
+            feature_names=top_10_features
+        ), max_display=10)
+        plt.savefig('shap_waterfall_top10.png', dpi=300, bbox_inches='tight', facecolor='white')
+        with open('shap_waterfall_top10.png', 'rb') as image_file:
+            encoded_top_10 = base64.b64encode(image_file.read()).decode('utf-8')
+        plt.close('all')
 
-    plt.figure(figsize=(10, 6))
-    shap.waterfall_plot(shap.Explanation(values=shap_values[0],
-                                          base_values=explainer.expected_value,
-                                          data=model_input.iloc[0],
-                                          feature_names=REQUIRED_FEATURES),
-                        max_display=len(REQUIRED_FEATURES))
-    plt.savefig('shap_waterfall_all.png', dpi=300, bbox_inches='tight', facecolor='white')
-    with open('shap_waterfall_all.png', 'rb') as image_file:
-        encoded_all_features = base64.b64encode(image_file.read()).decode('utf-8')
-    plt.close('all')
-    
-    importance = np.abs(shap_values[0])
-    feature_importance = pd.DataFrame({
-        "Feature": REQUIRED_FEATURES,
-        "Importance": importance
-    }).sort_values(by="Importance", ascending=False)
-    top_10_features = feature_importance['Feature'].head(10).tolist()
-    
-    top_10_indices = [REQUIRED_FEATURES.index(f) for f in top_10_features]
-    plt.figure(figsize=(10, 6))
-    shap.waterfall_plot(shap.Explanation(values=shap_values[0][top_10_indices],
-                                          base_values=explainer.expected_value,
-                                          data=model_input.iloc[0][top_10_features],
-                                          feature_names=top_10_features),
-                        max_display=10)
-    plt.savefig('shap_waterfall_top10.png', dpi=300, bbox_inches='tight', facecolor='white')
-    with open('shap_waterfall_top10.png', 'rb') as image_file:
-        encoded_top_10 = base64.b64encode(image_file.read()).decode('utf-8')
-    plt.close('all')
-
-    important_descriptors = {
-        feature: {
-            'value': float(model_input[feature].iloc[0]),
-            'importance': float(feature_importance[feature_importance['Feature'] == feature]['Importance'].iloc[0])
+        important_descriptors = {
+            feature: {
+                'value': float(desc_df[feature].iloc[0]),
+                'importance': float(feature_importance[feature_importance['Feature'] == feature]['Importance'].iloc[0])
+            }
+            for feature in top_10_features
         }
-        for feature in top_10_features
-    }
-    
-    return (mol, pred_value, important_descriptors, "Prediction successful",
-            encoded_all_features, encoded_top_10)
+        
+        mol = Chem.MolFromSmiles(smiles)
+        return (mol, pred_value, important_descriptors, "Prediction successful", encoded_top_10)
 
+    except Exception as e:
+        return None, None, None, f"Prediction failed: {str(e)}", None, None
 
-# Predict the activity of a molecule using a trained model
 def predict_svr(smiles, model_path, train_data_path):
-    # Define required features (from your training data)
     REQUIRED_FEATURES = ['MaxAbsEStateIndex', 'MinEStateIndex', 'SPS', 'MolWt', 'BCUT2D_MWHI',
        'HallKierAlpha', 'PEOE_VSA1', 'PEOE_VSA10', 'PEOE_VSA11', 'PEOE_VSA12',
        'PEOE_VSA13', 'PEOE_VSA2', 'PEOE_VSA3', 'PEOE_VSA4', 'PEOE_VSA5',
@@ -208,18 +214,7 @@ def predict_svr(smiles, model_path, train_data_path):
     # SHAP explanation
     explainer = shap.KernelExplainer(model.predict, train_data)
     shap_values = explainer.shap_values(model_input)
-    # Waterfall plot for all features
     matplotlib.use('Agg')
-    plt.figure(figsize=(10, 6))
-    shap.waterfall_plot(shap.Explanation(values=shap_values[0],
-                                       base_values=explainer.expected_value,
-                                       data=model_input.iloc[0],
-                                       feature_names=REQUIRED_FEATURES),
-                       max_display=len(REQUIRED_FEATURES))
-    plt.savefig('shap_waterfall_all.png', dpi=300, bbox_inches='tight', facecolor='white')
-    with open('shap_waterfall_all.png', 'rb') as image_file:
-        encoded_all_features = base64.b64encode(image_file.read()).decode('utf-8')
-    plt.close('all') 
     
     # Calculate feature importance and get top 10
     importance = np.abs(shap_values[0])
@@ -251,8 +246,7 @@ def predict_svr(smiles, model_path, train_data_path):
         for feature in top_10_features
     }
     
-    return (mol, pred_value, important_descriptors, "Prediction successful",
-            encoded_all_features, encoded_top_10)
+    return (mol, pred_value, important_descriptors, "Prediction successful", encoded_top_10)
 
 # Visualize a molecule without the SMILES string
 def visualize_molecule_withoutSmiles(mol):
@@ -323,11 +317,15 @@ def get_molecular_properties(mol):
     return properties
 
 
-def get_molecule_info(mol, prediction):
+def get_molecule_info(ALR_type, mol, prediction):
     formula = CalcMolFormula(mol)
     canonized_smiles = Chem.MolToSmiles(mol, canonical=True)
     inchi = Chem.MolToInchi(mol)
-    efficiency = determine_efficiency(prediction,100)
+
+    if ALR_type == "ALR1": 
+        efficiency = "Effective" if round(prediction) == 1 else "Not Effective"
+    if ALR_type == "ALR2": 
+        efficiency = determine_efficiency(prediction,100)
 
     info = {
         "formula": formula,

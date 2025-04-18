@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
-import { Bar, Line } from "react-chartjs-2";
+import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   BarElement,
-  PointElement,
-  LineElement,
   Title,
   Tooltip,
   Legend,
@@ -16,7 +14,15 @@ import {
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend);
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 const HistoryPage = () => {
   const [predictions, setPredictions] = useState([]);
@@ -28,7 +34,7 @@ const HistoryPage = () => {
   const [filterColumn, setFilterColumn] = useState("all");
   const rowsPerPage = 9;
   const navigate = useNavigate();
-  const API_URL = import.meta.env.VITE_API_URL  || 'http://127.0.0.1:8000/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
   useEffect(() => {
     const fetchData = async () => {
@@ -39,6 +45,9 @@ const HistoryPage = () => {
           setLoading(false);
           return;
         }
+
+        // Simulate delay to observe animation
+        await new Promise((resolve) => setTimeout(resolve, 3000));
 
         const response = await fetch(`${API_URL}/prediction-history/`, {
           headers: {
@@ -51,7 +60,6 @@ const HistoryPage = () => {
         }
 
         const data = await response.json();
-        console.log("Fetched predictions:", data);
         setPredictions(data);
         setFilteredPredictions(data);
       } catch (err) {
@@ -184,14 +192,196 @@ const HistoryPage = () => {
     navigate("/results", { state: mappedResult });
   };
 
+  const getHistogramData = () => {
+    const alr1Values = filteredPredictions
+      .filter((item) => item.model_name === "ALR1")
+      .map((item) => (typeof item.prediction === "number" ? item.prediction : NaN))
+      .filter((val) => !isNaN(val));
+
+    const alr2Values = filteredPredictions
+      .filter((item) => item.model_name === "ALR2")
+      .map((item) => (typeof item.prediction === "number" ? item.prediction : NaN))
+      .filter((val) => !isNaN(val));
+
+    const allValues = [...alr1Values, ...alr2Values];
+
+    if (allValues.length === 0) {
+      return {
+        labels: ["No data"],
+        datasets: [
+          {
+            label: "ALR1",
+            data: [0],
+            backgroundColor: "rgba(54, 162, 235, 0.6)",
+            borderColor: "rgba(54, 162, 235, 1)",
+            borderWidth: 1,
+          },
+          {
+            label: "ALR2",
+            data: [0],
+            backgroundColor: "rgba(255, 99, 132, 0.6)",
+            borderColor: "rgba(255, 99, 132, 1)",
+            borderWidth: 1,
+          },
+        ],
+      };
+    }
+
+    const min = Math.min(...allValues);
+    const max = Math.max(...allValues) + 1;
+    const step = (max - min) / 10 || 1; // Avoid division by zero
+    const labels = Array.from({ length: 10 }, (_, i) =>
+      `${(min + i * step).toFixed(2)} - ${(min + (i + 1) * step).toFixed(2)}`
+    );
+
+    const alr1Data = Array.from({ length: 10 }, (_, i) =>
+      alr1Values.filter(
+        (val) => val >= min + i * step && val < min + (i + 1) * step
+      ).length
+    );
+
+    const alr2Data = Array.from({ length: 10 }, (_, i) =>
+      alr2Values.filter(
+        (val) => val >= min + i * step && val < min + (i + 1) * step
+      ).length
+    );
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: "ALR1",
+          data: alr1Data,
+          backgroundColor: "rgba(54, 162, 235, 0.6)",
+          borderColor: "rgba(54, 162, 235, 1)",
+          borderWidth: 1,
+        },
+        {
+          label: "ALR2",
+          data: alr2Data,
+          backgroundColor: "rgba(255, 99, 132, 0.6)",
+          borderColor: "rgba(255, 99, 132, 1)",
+          borderWidth: 1,
+        },
+      ],
+    };
+  };
+
+  const getTrendData = () => {
+    const dateCounts = filteredPredictions.reduce((acc, item) => {
+      const date = new Date(item.date).toLocaleDateString("de-DE");
+      acc[date] = (acc[date] || 0) + 1;
+      return acc;
+    }, {});
+
+    const dates = Object.keys(dateCounts)
+      .sort(
+        (a, b) => new Date(a.split(".").reverse().join("-")) - new Date(b.split(".").reverse().join("-"))
+      )
+      .reverse();
+    const counts = dates.map((date) => dateCounts[date]);
+
+    if (dates.length === 0) {
+      return {
+        labels: ["No data"],
+        datasets: [
+          {
+            label: "Predictions",
+            data: [0],
+            backgroundColor: "rgb(75, 192, 192)",
+            borderColor: "rgb(75, 192, 192)",
+            borderWidth: 1,
+          },
+        ],
+      };
+    }
+
+    return {
+      labels: dates,
+      datasets: [
+        {
+          label: "Predictions",
+          data: counts,
+          backgroundColor: "rgb(75, 192, 192)",
+          borderColor: "rgb(75, 192, 192)",
+          borderWidth: 1,
+        },
+      ],
+    };
+  };
+
+  const histogramOptions = {
+    responsive: true,
+    plugins: {
+      legend: { position: "top" },
+      title: {
+        display: true,
+        text: "Predicted value distribution",
+      },
+    },
+    scales: {
+      y: {
+        min: 0,
+        ticks: { stepSize: 1 },
+        title: { display: true, text: "Count" },
+      },
+      x: {
+        title: { display: true, text: "Predicted value range" },
+      },
+    },
+  };
+
+  const trendOptions = {
+    responsive: true,
+    plugins: {
+      legend: { position: "top" },
+      title: {
+        display: true,
+        text: predictions.length === 0 ? "No predictions available" : "Predictions per day",
+      },
+    },
+    scales: {
+      y: {
+        min: 0,
+        ticks: { stepSize: 1 },
+        title: { display: true, text: "Number of predictions" },
+      },
+      x: {
+        title: { display: true, text: "Date" },
+      },
+    },
+  };
+
   if (loading)
     return (
       <div className="flex min-h-screen bg-gray-100">
         <Sidebar />
         <main className="flex-1 p-6 ml-64">
-          <div>Loading predictions...</div>
+          <div className="bg-white rounded-lg shadow p-6">
+            <h1 className="text-2xl font-bold text-black mb-6">Prediction history</h1>
+            <div className="text-center py-4">
+              <div className="relative inline-block" style={{ minWidth: "100px", minHeight: "50px" }}>
+                <span
+                  className="text-4xl animate-mouse-scurry"
+                  style={{ display: "inline-block", animation: "mouse-scurry 2s ease-in-out infinite !important" }}
+                >
+                  🐁
+                </span>
+                <span
+                  className="text-xl text-yellow-400 absolute top-0 -right-8 opacity-0 animate-cheese-pop"
+                  style={{
+                    animation: "cheese-pop 2s ease-in-out infinite !important",
+                    animationDelay: "0.5s",
+                  }}
+                >
+                  🧀
+                </span>
+              </div>
+              <p className="mt-2 text-gray-500">Trying to fetch prediction history...</p>
+            </div>
+          </div>
         </main>
-        <ToastContainer closeButton={false}/>
+        <ToastContainer closeButton={false} />
       </div>
     );
 
@@ -202,7 +392,7 @@ const HistoryPage = () => {
         <main className="flex-1 p-6 ml-64">
           <div>Error: {error}</div>
         </main>
-        <ToastContainer closeButton={false}/>
+        <ToastContainer closeButton={false} />
       </div>
     );
 
@@ -211,155 +401,17 @@ const HistoryPage = () => {
   const currentItems = filteredPredictions.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredPredictions.length / rowsPerPage);
 
-  const predictionValues = predictions
-    .map((item) => (typeof item.prediction === "number" ? item.prediction : 0))
-    .filter((val) => val !== 0);
-
-  const dates = predictions.map((item) => new Date(item.date).toLocaleDateString("de-DE")).reverse();
-  const predictionsByDate = predictions.map((item) =>
-    typeof item.prediction === "number" ? item.prediction : 0
-  ).reverse();
-
-  const histogramData = predictionValues.length === 0
-    ? {
-        labels: ["No data"],
-        datasets: [
-          {
-            label: "Predicted value distribution",
-            data: [0],
-            backgroundColor: "rgba(54, 162, 235, 0.6)",
-          },
-        ],
-      }
-    : predictionValues.length === 1
-    ? {
-        labels: [
-          `${(predictionValues[0] - 0.5).toFixed(2)} - ${(predictionValues[0] + 0.5).toFixed(2)}`,
-        ],
-        datasets: [
-          {
-            label: "Predicted value distribution",
-            data: [1], 
-            backgroundColor: "rgba(54, 162, 235, 0.6)",
-          },
-        ],
-      }
-    : {
-        labels: Array.from({ length: 10 }, (_, i) => {
-          const min = Math.min(...predictionValues);
-          const max = Math.max(...predictionValues);
-          const step = (max - min) / 10;
-          return `${(min + i * step).toFixed(2)} - ${(min + (i + 1) * step).toFixed(2)}`;
-        }),
-        datasets: [
-          {
-            label: "Predicted value distribution",
-            data: Array.from({ length: 10 }, (_, i) => {
-              const min = Math.min(...predictionValues);
-              const max = Math.max(...predictionValues);
-              const step = (max - min) / 10;
-              return predictionValues.filter(
-                (val) => val >= min + i * step && val < min + (i + 1) * step
-              ).length;
-            }),
-            backgroundColor: "rgba(54, 162, 235, 0.6)",
-          },
-        ],
-      };
-
-  const lineData = predictions.length === 0
-    ? {
-        labels: ["No Data"],
-        datasets: [
-          {
-            label: "Prediction Trend",
-            data: [0],
-            fill: false,
-            borderColor: "rgb(75, 192, 192)",
-            tension: 0.1,
-          },
-          {
-            label: "Effective/Not effective threshold",
-            data: [100], 
-            fill: false,
-            borderColor: "rgb(255, 99, 132)", 
-            borderDash: [5, 5],
-            tension: 0,
-          },
-        ],
-      }
-    : predictions.length === 1
-    ? {
-        labels: [dates[0], dates[0]], 
-        datasets: [
-          {
-            label: "Prediction Trend",
-            data: [predictionsByDate[0], predictionsByDate[0]], 
-            fill: false,
-            borderColor: "rgb(75, 192, 192)",
-            tension: 0.1,
-          },
-          {
-            label: "Effective/Not effective threshold",
-            data: [100, 100], 
-            fill: false,
-            borderColor: "rgb(255, 99, 132)",
-            borderDash: [5, 5],
-            tension: 0,
-          },
-        ],
-      }
-    : {
-        labels: dates,
-        datasets: [
-          {
-            label: "Prediction trend",
-            data: predictionsByDate,
-            fill: false,
-            borderColor: "rgb(75, 192, 192)",
-            tension: 0.1,
-          },
-          {
-            label: "Effective/Not effective threshold",
-            data: Array(dates.length).fill(100), 
-            fill: false,
-            borderColor: "rgb(255, 99, 132)", 
-            borderDash: [5, 5], 
-            tension: 0,
-          },
-        ],
-      };
-
-  const options = {
-    responsive: true,
-    plugins: {
-      legend: { position: "top" },
-      title: {
-        display: true,
-        text:
-          predictions.length === 1
-            ? "Single prediction (Limited trend)"
-            : predictions.length === 0
-            ? "No predictions available"
-            : "",
-      },
-    },
-    scales: {
-      y: { beginAtZero: true },
-    },
-  };
-
   return (
     <div className="flex min-h-screen bg-gray-100">
       <Sidebar />
       <main className="flex-1 p-6 ml-64">
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-2xl font-bold mb-6 text-black">
+          <h1 className="text-2xl font-bold mb-6 text-black">
             Prediction history
             <span className="text-sm text-gray-500 ml-2">
               ({filteredPredictions.length} predictions)
             </span>
-          </h2>
+          </h1>
 
           <div className="mb-6 flex items-center space-x-4">
             <div className="flex-1">
@@ -403,10 +455,10 @@ const HistoryPage = () => {
 
           <div className="grid grid-cols-2 gap-6 mb-6">
             <div className="bg-gray-50 p-4 rounded-lg shadow">
-              <Bar data={histogramData} options={options} />
+              <Bar data={getHistogramData()} options={histogramOptions} />
             </div>
             <div className="bg-gray-50 p-4 rounded-lg shadow">
-              <Line data={lineData} options={options} />
+              <Bar data={getTrendData()} options={trendOptions} />
             </div>
           </div>
 
@@ -510,7 +562,7 @@ const HistoryPage = () => {
           )}
         </div>
       </main>
-      <ToastContainer closeButton={false}/>
+      <ToastContainer closeButton={false} />
     </div>
   );
 };

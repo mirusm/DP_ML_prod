@@ -10,7 +10,7 @@ const SignInPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
-  const API_URL = import.meta.env.VITE_API_URL  || 'http://127.0.0.1:8000/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
   console.log('API_URL being used:', API_URL); 
 
 
@@ -41,8 +41,6 @@ const SignInPage = () => {
 
       const userInfo = await response.json();
       localStorage.setItem('userId', userInfo.id);
-
-      console.log('User Info:', userInfo); 
 
       navigate('/dashboard');
     } catch (err) {

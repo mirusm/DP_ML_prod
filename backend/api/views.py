@@ -1,13 +1,7 @@
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
 from rdkit import Chem
-from rdkit.Chem import Draw
 from django.http import JsonResponse
-from sklearn.model_selection import train_test_split, GridSearchCV, RepeatedKFold
-from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
-from sklearn.feature_selection import VarianceThreshold, SelectKBest, f_regression
-from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, explained_variance_score
-from rdkit.Chem.rdMolDescriptors import CalcMolFormula
 from .models import PredictionHistory
 from django.contrib.auth.models import User
 from rest_framework.response import Response
@@ -54,7 +48,6 @@ def get_prediction_history(request):
         'properties': item.properties,
         'descriptors': item.descriptors,
         'shap_plot': item.shap_plot,
-        'plot_all': item.plot_all,
         'user_id': item.user_id
     } for item in history]
     return JsonResponse(data, safe=False)
@@ -125,31 +118,29 @@ def upload_dataset(request):
         return JsonResponse({"error": "Invalid SMILES/CAS string"}, status=400)
     
     # Predict with ALR2 (SVR)
-    mol_alr2, prediction_alr2, descriptors_alr2, message_alr2, plot_all_alr2, plot_top_alr2 = predict_svr(
-        smiles, model_path="models/svr_model_alr2.pkl", train_data_path="data/x_train_data.csv"
+    mol_alr2, prediction_alr2, descriptors_alr2, message_alr2, plot_top_alr2 = predict_svr(
+        smiles, model_path="models/svr_model_alr2.pkl", train_data_path="data/x_train_data_alr2.csv"
     )
     if mol_alr2 is None:
         return JsonResponse({"error": message_alr2}, status=400)
     
-    # uncomment this when you have the ALR1 model ready and make function for it
-    """
-    mol_alr1, prediction_alr1, descriptors_alr1, message_alr1, plot_all_alr1, plot_top_alr1 = predict_svr(
-        smiles, model_path="models/svr_model_alr2.pkl", train_data_path="data/x_train_data.csv"
+    # Predict with ALR1 (XGBoost)
+    mol_alr1, prediction_alr1, descriptors_alr1, message_alr1, plot_top_alr1 = predict_xgboost(
+        smiles, model_path="models/xgb_model_alr1.pkl", train_data_path="data/x_train_data_alr1.csv"
     )
     if mol_alr1 is None:
         return JsonResponse({"error": message_alr1}, status=400)
-    """
+    
     # Gather info for both models
-    info_alr2 = get_molecule_info(mol_alr2, prediction_alr2)
+    info_alr2 = get_molecule_info("ALR2", mol_alr2, prediction_alr2)
     properties_alr2 = get_molecular_properties(mol_alr2)
     iupac_name = resolve_iupac_from_smiles(smiles)
     info_alr2["iupac_name"] = iupac_name
-    # uncomment this when you have the LR1 model ready
-    """
-    info_alr1 = get_molecule_info(mol_alr1, prediction_alr1)
+    
+    info_alr1 = get_molecule_info("ALR1", mol_alr1, prediction_alr1)
     properties_alr1 = get_molecular_properties(mol_alr1)
     info_alr1["iupac_name"] = iupac_name
-    """
+    
     mol_image_base64 = visualize_molecule_withoutSmiles(mol)
 
     PredictionHistory.objects.create(
@@ -164,27 +155,24 @@ def upload_dataset(request):
         iupac_name=info_alr2.get('iupac_name'),
         properties=properties_alr2,
         descriptors=descriptors_alr2,
-        shap_plot=plot_top_alr2,
-        plot_all=plot_all_alr2
+        shap_plot=plot_top_alr2
     )
-    # change this to ALR1 when you have the model ready
+
     PredictionHistory.objects.create(
         user_id=user_id,
         smiles=smiles,
         cas=cas,
         model_name="ALR1",
-        prediction=float(prediction_alr2),
-        efficiency=info_alr2['efficiency'],
+        prediction=float(prediction_alr1),
+        efficiency=info_alr1['efficiency'],
         molecule_image=mol_image_base64,
-        formula=info_alr2['formula'],
-        iupac_name=info_alr2.get('iupac_name'),
-        properties=properties_alr2,
-        descriptors=descriptors_alr2,
-        shap_plot=plot_top_alr2,
-        plot_all=plot_all_alr2
+        formula=info_alr1['formula'],
+        iupac_name=info_alr1.get('iupac_name'),
+        properties=properties_alr1,
+        descriptors=descriptors_alr1,
+        shap_plot=plot_top_alr1
     )
 
-    os.remove('shap_waterfall_all.png')
     os.remove('shap_waterfall_top10.png')
 
     return JsonResponse({
@@ -204,11 +192,11 @@ def upload_dataset(request):
             "smiles": smiles,
             "cas": cas,
             "inputType": inputType,
-            "prediction": str(prediction_alr2),
-            "info": info_alr2,
-            "descriptors": descriptors_alr2,
-            "properties": properties_alr2,
-            "shap_plot": plot_top_alr2
+            "prediction": str(prediction_alr1),
+            "info": info_alr1,
+            "descriptors": descriptors_alr1,
+            "properties": properties_alr1,
+            "shap_plot": plot_top_alr1
         }
     })
 

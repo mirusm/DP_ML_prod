@@ -14,25 +14,23 @@ const NewPredictionPage = ({ onResults }) => {
   const [errorMessage, setErrorMessage] = useState("");
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
-  const API_URL = import.meta.env.VITE_API_URL  || 'http://127.0.0.1:8000/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
   const toggleProfileMenu = () => {
     setIsProfileOpen(!isProfileOpen);
   };
 
-  // Handle input type change and clear the irrelevant field
   const handleInputTypeChange = (e) => {
     const newInputType = e.target.value;
     setInputType(newInputType);
     if (newInputType === "SMILES") {
-      setCas(""); // Clear CAS when switching to SMILES
+      setCas("");
     } else if (newInputType === "CAS") {
-      setSmiles(""); // Clear SMILES when switching to CAS
+      setSmiles("");
     }
   };
 
   const handleAdd = () => {
-    // Validate based on the current input type
     if (inputType === "SMILES" && !smiles) {
       toast.error("SMILES code cannot be empty");
       return;
@@ -42,7 +40,6 @@ const NewPredictionPage = ({ onResults }) => {
       return;
     }
 
-    // Create entry with only the relevant field based on inputType
     const entry = {
       smiles: inputType === "SMILES" ? smiles : "",
       cas: inputType === "CAS" ? cas : "",
@@ -52,6 +49,12 @@ const NewPredictionPage = ({ onResults }) => {
     setSmiles("");
     setCas("");
     setErrorMessage("");
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleAdd();
+    }
   };
 
   const handleDelete = (index) => {
@@ -181,7 +184,7 @@ const NewPredictionPage = ({ onResults }) => {
               <select
                 className="w-full p-2 border border-gray-300 rounded text-black"
                 value={inputType}
-                onChange={handleInputTypeChange} // Updated to use new handler
+                onChange={handleInputTypeChange}
               >
                 <option>SMILES</option>
                 <option>CAS</option>
@@ -197,6 +200,7 @@ const NewPredictionPage = ({ onResults }) => {
                 onChange={(e) =>
                   inputType === "SMILES" ? setSmiles(e.target.value) : setCas(e.target.value)
                 }
+                onKeyDown={handleKeyDown} // Added Enter key handler
                 placeholder={`Enter ${inputType} code`}
                 className="w-full p-2 border border-gray-300 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
@@ -213,7 +217,16 @@ const NewPredictionPage = ({ onResults }) => {
 
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-xl font-bold mb-4 text-gray-800">Run pipeline</h2>
-          {pipelineEntries.length === 0 ? (
+          {isRunning ? (
+            <div className="text-center py-4">
+              <div className="modern-mouse-container">
+                <div className="modern-mouse">
+                  <div className="mouse-body"></div>
+                  <div className="mouse-trail"></div>
+                </div>
+              </div>
+            </div>
+          ) : pipelineEntries.length === 0 ? (
             <p className="text-gray-500">No entries added yet.</p>
           ) : (
             <table className="w-full text-left border-collapse">
@@ -245,26 +258,17 @@ const NewPredictionPage = ({ onResults }) => {
           <button
             onClick={handleRun}
             disabled={isRunning}
-            className={`mt-4 relative ${
+            className={`mt-4 ${
               isRunning
                 ? "bg-green-500 cursor-not-allowed"
                 : "bg-green-600 hover:bg-green-700"
             } text-white px-4 py-2 rounded text-lg transition duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 min-w-[100px]`}
           >
-            {isRunning ? (
-              <>
-                <span className="opacity-0">Run</span>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
-                </div>
-              </>
-            ) : (
-              "Run"
-            )}
+            Run
           </button>
         </div>
       </main>
-      <ToastContainer closeButton={false}/>
+      <ToastContainer closeButton={false} />
     </div>
   );
 };

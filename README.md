@@ -71,6 +71,28 @@ This ML-Powered QSAR full-stack web tool is built with Python, Django (backend),
    http://localhost:5173
    ```
 ---
+## 🛠️ Build
+
+### 🔹 Frontend production build (React)
+
+To create a production-ready build of the frontend and serve it locally for testing:
+
+1. Navigate to the frontend directory:
+   ```sh
+   cd frontend
+   ```
+2. Build the production assets:
+   ```sh
+   npm run build
+   ```
+3. Install the serve package globally (if not already installed):
+   ```sh
+   npm install -g serve
+   ```
+4. Serve the production build locally on port 3000:
+   ```sh
+   serve -s dist -l 3000
+   ```
 
 ## 🚀 Deployment
 
@@ -78,7 +100,6 @@ The app is deployed on Hetzner's VPS on IP 49.12.65.96. For deployment were used
 See docker-compose.yml file in the root folder.
 
    ```sh
-   
    git clone <repo> # in the /root/code/TP directory
 
    cd /root/code/TP/ML_production
@@ -94,11 +115,10 @@ When volumes needed to be cleared:
 
    sudo docker system prune -a --volumes
 
-   cd ..
-
-   rm -r ML_production
-   # and again make git clone with building project
+   # and again make git pull to have newest changes and build project project again
+   sudo docker compose up --build -d 
    ```
+To make it autimatically, run in root folder bash script `./runTp.sh` and if prompted somethin, press `y` to confirm and just wait.
 
 ### 📌 Backend deployment
 See Dockerfile and nginx folder with nginx.conf in the backend directory.

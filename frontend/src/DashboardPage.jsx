@@ -10,7 +10,7 @@ const DashboardPage = () => {
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const API_URL = import.meta.env.VITE_API_URL  || 'http://127.0.0.1:8000/api';
+  const API_URL =  import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
   useEffect(() => {
     fetchLastPredictions();
   }, []);
@@ -98,9 +98,30 @@ const DashboardPage = () => {
           <h2 className="text-xl font-bold mb-4 text-gray-800">Last 8 predictions</h2>
           {loading ? (
             <div className="text-center py-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+              <div className="relative inline-block" style={{ minWidth: "150px", minHeight: "50px" }}>
+                <span
+                  className="text-4xl animate-mouse-scurry"
+                  style={{
+                    display: "inline-block",
+                    animation: "mouse-scurry 2s ease-in-out infinite !important",
+                    transformOrigin: "center",
+                  }}
+                >
+                  🐁
+                </span>
+                <span
+                  className="text-xl text-yellow-400 absolute top-0 right-[-2rem] opacity-0 animate-cheese-pop"
+                  style={{
+                    animation: "cheese-pop 2s ease-in-out infinite !important",
+                    animationDelay: "0.5s",
+                  }}
+                >
+                  🧀
+                </span>
+              </div>
+              <p className="mt-2 text-gray-500">Trying to fetch predictions...</p>
             </div>
-          ) : predictions.length === 0 ? (
+          )  : predictions.length === 0 ? (
             <p className="text-gray-500 text-center py-4">No predictions available.</p>
           ) : (
             <div className="overflow-x-auto">
