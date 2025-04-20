@@ -50,9 +50,21 @@ const SignUpPage = () => {
     return <div className="flex h-screen items-center justify-center">Loading...</div>;
   }
 
+  const handleBackToSignIn = () => {
+    navigate('/sign-in');
+  };
+
   return (
     <div className="flex h-screen">
       <div className="w-1/2 flex items-center justify-center bg-white p-8">
+      <div className="text-white">
+          <button
+            onClick={handleBackToSignIn}
+            className="absolute top-4 left-4 hover:underline text-current focus:outline-none"
+          >
+            ← Back
+          </button>
+        </div>
         <div className="w-full max-w-md">
           <h1 className="text-4xl font-bold mb-6 text-blue-600 text-center">Create an account</h1>
           <p className="text-gray-500 text-sm mb-8 text-center">
