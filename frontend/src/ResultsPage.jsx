@@ -85,6 +85,47 @@ const ResultPage = () => {
     }
   };
 
+  const exportResultToCSV = () => {
+    if (!selectedResult) return;
+  
+    const basicInfo = {
+      SMILES: selectedResult.smiles || "N/A",
+      Canonical_SMILES: selectedResult.info?.canonical_smiles || "N/A",
+      Formula: selectedResult.info?.formula || "N/A",
+      CAS: selectedResult.cas || "N/A",
+      Prediction: selectedResult.predictedValue || "N/A",
+      Efficiency: selectedResult.efficiency || "N/A",
+      IUPAC_name: selectedResult.info?.iupac_name || "N/A",
+    };
+  
+    const properties = selectedResult.properties || {};
+    const descriptors = selectedResult.descriptors || {};
+  
+    let csvContent = "Category,Key,Value\n";
+  
+    Object.entries(basicInfo).forEach(([key, value]) => {
+      csvContent += `Basic Info,${key},${value}\n`;
+    });
+  
+    Object.entries(properties).forEach(([key, value]) => {
+      csvContent += `Properties,${key},${value}\n`;
+    });
+  
+    Object.entries(descriptors).forEach(([key, descriptor]) => {
+      csvContent += `Descriptors,${key}_value,${descriptor.value}\n`;
+      csvContent += `Descriptors,${key}_importance,${descriptor.importance}\n`;
+    });
+  
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "compound_result.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const descriptorDescriptions = {
     MaxAbsEStateIndex: `MaxAbsEStateIndex: Returns a tuple of EState indices for the molecule, Reference: Hall, Mohney and Kier. JCICS 31 76-81 (1991).`,
     MinEStateIndex: `MinEStateIndex: Returns a tuple of EState indices for the molecule, Reference: Hall, Mohney and Kier. JCICS 31 76-81 (1991).`,
@@ -198,7 +239,7 @@ const ResultPage = () => {
             {results.length > 0 && (
               <button
                 onClick={handleBackToList}
-                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 cursor-pointer"
               >
                 Back to results list
               </button>
@@ -354,6 +395,12 @@ const ResultPage = () => {
             >
               {origin === "dashboard" ? "Back to dashboard" : "Back to history"}
             </Link>
+            <button
+              onClick={exportResultToCSV}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ml-4 cursor-pointer"
+            >
+              Export to CSV
+            </button>
           </div>
 
           {showImagePopup && popupImageSrc && (
@@ -395,7 +442,7 @@ const ResultPage = () => {
         
         <div className="mb-6">
           <button
-            className={`px-4 py-2 rounded ${activeTab === "ALR1" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-800"}`}
+            className={`px-4 py-2 rounded cursor-pointer ${activeTab === "ALR1" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-800"}`}
             onClick={() => {
               setActiveTab("ALR1");
               setCurrentPage(1);
@@ -404,7 +451,7 @@ const ResultPage = () => {
             ALR1 Results
           </button>
           <button
-            className={`px-4 py-2 mr-2 rounded ${activeTab === "ALR2" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-800"}`}
+            className={`px-4 py-2 mr-2 rounded cursor-pointer ${activeTab === "ALR2" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-800"}`}
             onClick={() => {
               setActiveTab("ALR2");
               setCurrentPage(1);
@@ -460,7 +507,7 @@ const ResultPage = () => {
             <button
               onClick={handlePreviousPage}
               disabled={currentPage === 1}
-              className={`px-4 py-2 rounded text-white ${
+              className={`px-4 py-2 rounded text-white cursor-pointer ${
                 currentPage === 1
                   ? "bg-gray-400 cursor-not-allowed"
                   : "bg-blue-600 hover:bg-blue-700"
@@ -474,7 +521,7 @@ const ResultPage = () => {
             <button
               onClick={handleNextPage}
               disabled={currentPage === totalPages}
-              className={`px-4 py-2 rounded text-white ${
+              className={`px-4 py-2 rounded text-white cursor-pointer ${
                 currentPage === totalPages
                   ? "bg-gray-400 cursor-not-allowed"
                   : "bg-blue-600 hover:bg-blue-700"

@@ -557,19 +557,52 @@ const HistoryPage = () => {
 
               {totalPages > 1 && (
                 <div className="mt-4 flex justify-center space-x-2">
-                  {Array.from({ length: totalPages }, (_, index) => (
-                    <button
-                      key={index + 1}
-                      onClick={() => setCurrentPage(index + 1)}
-                      className={`px-3 py-1 rounded ${
-                        currentPage === index + 1
-                          ? "bg-blue-500 text-white"
-                          : "bg-gray-200 text-gray-800 hover:bg-gray-300 cursor-pointer"
-                      }`}
-                    >
-                      {index + 1}
-                    </button>
-                  ))}
+                  {(() => {
+                    const pages = [];
+                    const visiblePages = 4;
+                    const half = Math.floor(visiblePages / 2);
+
+                    let start = Math.max(1, currentPage - half);
+                    let end = Math.min(totalPages, start + visiblePages - 1);
+
+                    if (end - start < visiblePages - 1) {
+                      start = Math.max(1, end - visiblePages + 1);
+                    }
+
+                    if (start > 1) {
+                      pages.push(1);
+                      if (start > 2) pages.push("ellipsis-start");
+                    }
+
+                    for (let i = start; i <= end; i++) {
+                      pages.push(i);
+                    }
+
+                    if (end < totalPages) {
+                      if (end < totalPages - 1) pages.push("ellipsis-end");
+                      pages.push(totalPages);
+                    }
+
+                    return pages.map((item, index) =>
+                      typeof item === "string" ? (
+                        <span key={item + index} className="px-3 py-1">
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={item}
+                          onClick={() => setCurrentPage(item)}
+                          className={`px-3 py-1 rounded ${
+                            currentPage === item
+                              ? "bg-blue-500 text-white"
+                              : "bg-gray-200 text-gray-800 hover:bg-gray-300 cursor-pointer"
+                          }`}
+                        >
+                          {item}
+                        </button>
+                      )
+                    );
+                  })()}
                 </div>
               )}
             </>

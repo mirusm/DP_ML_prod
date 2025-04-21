@@ -1,7 +1,23 @@
-import React from 'react';
-import { Link } from 'react-router-dom'; 
+import React, { useEffect } from 'react'; // <--- Import useEffect
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from './contexts/AuthContext'; // <--- Import useAuth
 
 const LandingPage = () => {
+  const { currentUser, logout, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && currentUser) {
+      console.log("User detected on Landing Page ('/'). Logging out...");
+      logout()
+        .then(() => {
+          console.log("Logout successful...");
+        })
+        .catch((error) => {
+          console.error("Error during automatic logout on LandingPage:", error);
+        });
+    }
+  }, [currentUser, loading, logout]);
+
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       <header className="pt-4 pr-4 pb-4 flex justify-between items-center container mx-auto">

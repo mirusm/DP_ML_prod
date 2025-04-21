@@ -1,29 +1,44 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '../firebase/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
 
 const AuthContext = createContext();
 
-export const useAuth = () => {
+export function useAuth() {
   return useContext(AuthContext);
-};
+}
 
-export const AuthProvider = ({ children }) => {
+export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log("Auth state changed:", user ? `User UID: ${user.uid}` : "No user");
       setCurrentUser(user);
       setLoading(false);
     });
-
     return unsubscribe;
   }, []);
 
+  const logout = () => {
+    try {
+      if (!auth) {
+        console.error("Cannot logout: Firebase auth object is missing!");
+        return Promise.reject(new Error("Firebase auth object is missing!"));
+      }
+      console.log("Logging out...");
+      return signOut(auth);
+    } catch (error) {
+       console.error("Error caught within logout function:", error);
+       return Promise.reject(error);
+    }
+  };
+
   const value = {
     currentUser,
-    loading
+    loading,
+    logout,
   };
 
   return (
@@ -31,4 +46,4 @@ export const AuthProvider = ({ children }) => {
       {!loading && children}
     </AuthContext.Provider>
   );
-}; 
+}

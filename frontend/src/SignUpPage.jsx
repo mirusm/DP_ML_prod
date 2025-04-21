@@ -4,20 +4,22 @@ import { auth } from './firebase/firebase';
 import { useNavigate, Link } from 'react-router-dom';
 import { onAuthStateChanged } from "firebase/auth";
 import { Mail, Lock } from "lucide-react";
+import { useAuth } from './contexts/AuthContext';
 
 const SignUpPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [createUserWithEmailAndPassword, , loadingAuth, errorAuth] = useCreateUserWithEmailAndPassword(auth);
   const navigate = useNavigate();
+  const { currentUser, loading: authLoading } = useAuth();
   const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
   
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) navigate('/dashboard');
-    });
-    return () => unsubscribe();
-  }, [navigate]);
+    if (!authLoading && currentUser) {
+      console.log("User already logged in, redirecting...");
+      navigate('/dashboard', { replace: true });
+    }
+  }, [currentUser, authLoading, navigate]);
 
   const handleSignUp = async () => {
     try {
