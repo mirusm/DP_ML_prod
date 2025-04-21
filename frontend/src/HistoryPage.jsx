@@ -413,9 +413,9 @@ const HistoryPage = () => {
             </span>
           </h1>
 
-          <div className="mb-6 flex items-center space-x-4">
+          <div className="mb-6 flex items-start space-x-4">
             <div className="flex-1">
-              <label htmlFor="filter" className="text-sm font-medium text-gray-700 mr-2">
+              <label htmlFor="filter" className="text-sm font-medium text-gray-700 mb-1 block">
                 Filter:
               </label>
               <input
@@ -424,18 +424,19 @@ const HistoryPage = () => {
                 value={filterText}
                 onChange={handleFilterChange}
                 placeholder="Search predictions..."
-                className="w-full px-3 py-2 border rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 h-11 border rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+
             <div>
-              <label htmlFor="column" className="text-sm font-medium text-gray-700 mr-2">
+              <label htmlFor="column" className="text-sm font-medium text-gray-700 mb-1 block">
                 Column:
               </label>
               <select
                 id="column"
                 value={filterColumn}
                 onChange={handleColumnChange}
-                className="px-3 py-2 border rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="h-11 px-3 border rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
               >
                 <option value="all">All columns</option>
                 <option value="date">Date</option>
@@ -445,12 +446,18 @@ const HistoryPage = () => {
                 <option value="efficiency">Efficiency</option>
               </select>
             </div>
-            <button
-              onClick={handleClearFilter}
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-            >
-              Clear filter
-            </button>
+
+            <div className="flex flex-col">
+              <label className="invisible block pointer-events-none select-none" aria-hidden="true">
+                Clear
+              </label>
+              <button
+                onClick={handleClearFilter}
+                className="h-11 bg-blue-500 text-white px-4 rounded hover:bg-blue-600 cursor-pointer"
+              >
+                Clear filter
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-6 mb-6">
@@ -499,7 +506,14 @@ const HistoryPage = () => {
                     {currentItems.map((item, index) => (
                       <tr key={item.id || index}>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {new Date(item.date).toLocaleString("de-DE")}
+                        {new Date(item.date).toLocaleString("sv-SE", {
+                            year: "numeric",
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: false,
+                          })}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">{item.smiles}</td>
                         <td className="px-6 py-4 whitespace-nowrap">{item.cas || "-"}</td>
@@ -524,13 +538,13 @@ const HistoryPage = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button
                             onClick={() => handleViewResult(item)}
-                            className="bg-blue-500 text-current text-white px-3 py-2 rounded hover:bg-blue-600"
+                            className="bg-blue-500 text-current text-white px-3 py-2 rounded hover:bg-blue-600 cursor-pointer"
                           >
                             View
                           </button>
                           <button
                             onClick={() => handleDeleteResult(item)}
-                            className="bg-red-500 text-current text-white px-3 py-2 rounded hover:bg-red-600 ml-2"
+                            className="bg-red-500 text-current text-white px-3 py-2 rounded hover:bg-red-600 ml-2 cursor-pointer"
                           >
                             Delete
                           </button>
@@ -550,7 +564,7 @@ const HistoryPage = () => {
                       className={`px-3 py-1 rounded ${
                         currentPage === index + 1
                           ? "bg-blue-500 text-white"
-                          : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                          : "bg-gray-200 text-gray-800 hover:bg-gray-300 cursor-pointer"
                       }`}
                     >
                       {index + 1}

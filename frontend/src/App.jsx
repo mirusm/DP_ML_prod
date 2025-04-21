@@ -53,14 +53,6 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-           <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            }
-          />
           
           <Route path="/" element={<Navigate to="/sign-in" />} />
           <Route path="*" element={<Navigate to="/sign-in" />} />

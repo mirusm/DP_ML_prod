@@ -93,7 +93,7 @@ const SignInPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full p-4 bg-blue-600 text-white rounded text-lg hover:bg-blue-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-blue-400"
+              className="w-full p-4 bg-blue-600 text-white rounded text-lg hover:bg-blue-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-blue-400 cursor-pointer"
             >
               {loading ? "Signing in..." : "Sign in"}
             </button>

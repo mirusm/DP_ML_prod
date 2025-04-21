@@ -12,7 +12,7 @@ import InfoPage from './InfoPage.jsx';
 import HistoryPage from './HistoryPage.jsx';
 import NewPredictionPage from './NewPredictionPage.jsx';
 import ResultsPage from './ResultsPage.jsx';
-import ProfilePage from './ProfilePage.jsx'; 
+import NotFoundPage from './NotFoundPage.jsx';
 import { AuthProvider } from './contexts/AuthContext'; 
 import ProtectedRoute from './components/ProtectedRoute'; 
 
@@ -65,16 +65,10 @@ createRoot(document.getElementById('root')).render(
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            }
-          />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/tooltip" element={<InfoPage />} />
+
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

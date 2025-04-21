@@ -142,10 +142,10 @@ def predict_xgboost(smiles, model_path, train_data_path):
         model = joblib.load(model_path)
         train_data = pd.read_csv(train_data_path)[REQUIRED_FEATURES]
 
-        pred_value = int(model.predict(desc_df.values)[0])  # Class label (0 or 1)
+        pred_value = float(model.predict(desc_df.values)[0])  # Class label (0 or 1)
         # SHAP explanation using KernelExplainer
-        explainer = shap.KernelExplainer(lambda x: model.predict_proba(x)[:, 1], train_data.values)
-        shap_values = explainer.shap_values(desc_df.values)
+        explainer = shap.TreeExplainer(model, train_data)
+        shap_values = explainer.shap_values(desc_df)
         matplotlib.use('Agg')
         importance = np.abs(shap_values).mean(axis=0)
         feature_importance = pd.DataFrame({

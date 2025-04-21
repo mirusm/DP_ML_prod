@@ -16,10 +16,6 @@ const NewPredictionPage = ({ onResults }) => {
   const [isRunning, setIsRunning] = useState(false);
   const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
-  const toggleProfileMenu = () => {
-    setIsProfileOpen(!isProfileOpen);
-  };
-
   const handleInputTypeChange = (e) => {
     const newInputType = e.target.value;
     setInputType(newInputType);
@@ -155,26 +151,6 @@ const NewPredictionPage = ({ onResults }) => {
       <main className="flex-1 p-6 ml-64">
         <header className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-black">New prediction</h1>
-          <div className="relative">
-            <div
-              onClick={toggleProfileMenu}
-              className="flex items-center space-x-2 text-gray-800 hover:text-gray-600 cursor-pointer"
-            >
-              <img src="/person-icon.png" alt="User Profile" className="h-6 w-6" />
-            </div>
-            {isProfileOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg">
-                <Link
-                  to="/profile"
-                  state={{ from: location.pathname }}
-                  className="block px-4 py-2 text-gray-800 hover:bg-gray-100"
-                  onClick={() => setIsProfileOpen(false)}
-                >
-                  Profile
-                </Link>
-              </div>
-            )}
-          </div>
         </header>
 
         <div className="bg-gray-100 rounded-lg shadow p-6 mb-6">
@@ -182,7 +158,7 @@ const NewPredictionPage = ({ onResults }) => {
             <div className="mb-4 w-[200px]">
               <label className="block text-sm font-medium text-gray-700 mb-2">Input type</label>
               <select
-                className="w-full p-2 border border-gray-300 rounded text-black"
+                className="w-full p-2 border border-gray-300 rounded text-black cursor-pointer"
                 value={inputType}
                 onChange={handleInputTypeChange}
               >
@@ -200,14 +176,14 @@ const NewPredictionPage = ({ onResults }) => {
                 onChange={(e) =>
                   inputType === "SMILES" ? setSmiles(e.target.value) : setCas(e.target.value)
                 }
-                onKeyDown={handleKeyDown} // Added Enter key handler
+                onKeyDown={handleKeyDown}
                 placeholder={`Enter ${inputType} code`}
                 className="w-full p-2 border border-gray-300 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
             <button
               onClick={handleAdd}
-              className="bg-blue-600 text-white px-4 py-2 rounded text-lg hover:bg-blue-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="bg-blue-600 text-white px-4 py-2 rounded text-lg hover:bg-blue-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
             >
               Add
             </button>
@@ -232,7 +208,7 @@ const NewPredictionPage = ({ onResults }) => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr>
-                  <th className="p-2 text-gray-600">Smiles code</th>
+                  <th className="p-2 text-gray-600">SMILES code</th>
                   <th className="p-2 text-gray-600">CAS code</th>
                   <th className="p-2 text-gray-600">Actions</th>
                 </tr>
@@ -245,7 +221,7 @@ const NewPredictionPage = ({ onResults }) => {
                     <td className="p-2">
                       <button
                         onClick={() => handleDelete(index)}
-                        className="bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700"
+                        className="bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700 cursor-pointer"
                       >
                         Delete
                       </button>
@@ -262,7 +238,7 @@ const NewPredictionPage = ({ onResults }) => {
               isRunning
                 ? "bg-green-500 cursor-not-allowed"
                 : "bg-green-600 hover:bg-green-700"
-            } text-white px-4 py-2 rounded text-lg transition duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 min-w-[100px]`}
+            } text-white cursor-pointer px-4 py-2 rounded text-lg transition duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 min-w-[100px]`}
           >
             Run
           </button>

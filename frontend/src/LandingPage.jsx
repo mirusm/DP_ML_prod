@@ -4,21 +4,33 @@ import { Link } from 'react-router-dom';
 const LandingPage = () => {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
-      <header className="p-4 flex justify-between items-center container mx-auto">
+      <header className="pt-4 pr-4 pb-4 flex justify-between items-center container mx-auto">
         <div className="flex items-center space-x-2">
-          <img src="/tp25-logo.png" alt="TP15" className="h-10 w-10" />
+          <a href="/">
+            <img src="/tp25-logo.png" alt="TP15" className="h-10 w-10" />
+          </a>
+          <a href="/" className="font-bold text-lg">
+            QSAR Tool 
+          </a>
         </div>
         <nav className="space-x-6 font-bold">
-          <Link to="/" className="text-blue-800 hover:underline text-base font-bold px-2 py-1">
+          <Link
+            to="/"
+            className="text-blue-800 text-base font-bold px-2 py-1 rounded-md transition-colors duration-200 ease-in-out hover:bg-blue-800 hover:text-white"
+          >
             Home
           </Link>
           <a
             href="http://147.175.151.128/"
-            className="text-blue-800 hover:underline text-base font-bold px-2 py-1"
+            target="_blank"
+            className="text-blue-800 text-base font-bold px-2 py-1 rounded-md transition-colors duration-200 ease-in-out hover:bg-blue-800 hover:text-white"
           >
             Project
           </a>
-          <Link to="/sign-in" className="text-blue-800 hover:underline text-base font-bold px-2 py-1">
+          <Link
+            to="/sign-in"
+            className="text-blue-800 text-base font-bold px-2 py-1 rounded-md transition-colors duration-200 ease-in-out hover:bg-blue-800 hover:text-white"
+          >
             Login →
           </Link>
         </nav>
@@ -34,7 +46,7 @@ const LandingPage = () => {
               Our ML-Powered QSAR Web Tool leverages machine learning models to predict the inhibitor efficacy of ALR1 and ALR2.
             </p>
             <Link to="/sign-in">
-              <button className="bg-blue-600 text-white px-6 py-3 rounded text-lg hover:bg-blue-700 transition duration-300">
+              <button className="bg-blue-600 cursor-pointer text-white px-6 py-3 rounded text-lg hover:bg-blue-700 transition duration-300">
                 Enter app
               </button>
             </Link>

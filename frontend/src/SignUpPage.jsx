@@ -3,6 +3,7 @@ import { useCreateUserWithEmailAndPassword } from 'react-firebase-hooks/auth';
 import { auth } from './firebase/firebase';
 import { useNavigate, Link } from 'react-router-dom';
 import { onAuthStateChanged } from "firebase/auth";
+import { Mail, Lock } from "lucide-react";
 
 const SignUpPage = () => {
   const [email, setEmail] = useState("");
@@ -87,7 +88,7 @@ const SignUpPage = () => {
           <button
             onClick={handleSignUp}
             disabled={loadingAuth}
-            className="w-full p-4 bg-blue-600 text-white rounded text-lg hover:bg-blue-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-blue-400"
+            className="w-full p-4 bg-blue-600 text-white rounded text-lg hover:bg-blue-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-blue-400 cursor-pointer"
           >
             {loadingAuth ? "Creating Account..." : "Sign Up"}
           </button>

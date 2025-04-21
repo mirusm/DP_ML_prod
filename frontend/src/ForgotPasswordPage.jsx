@@ -49,9 +49,9 @@ const ForgotPasswordPage = () => {
           />
           <button
             onClick={handleForgotPassword}
-            className="w-full p-4 bg-blue-600 text-white rounded text-lg hover:bg-blue-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-4 bg-blue-600 text-white rounded text-lg hover:bg-blue-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
           >
-            {sending ? "Sending Reset email..." : "Send Reset email"}
+            {sending ? "Sending Reset email..." : "Send reset email"}
           </button>
           {error && (
             <p className="text-red-500 text-sm mt-4 text-center">

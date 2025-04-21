@@ -17,26 +17,6 @@ const InfoPage = () => {
       <main className="flex-1 p-6 ml-64">
         <header className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Tooltip</h1>
-          <div className="relative">
-            <div
-              onClick={toggleProfileMenu}
-              className="flex items-center space-x-2 text-gray-800 hover:text-gray-600 cursor-pointer"
-            >
-              <img src="/person-icon.png" alt="User Profile" className="h-6 w-6" />
-            </div>
-            {isProfileOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg">
-                <Link
-                  to="/profile"
-                  state={{ from: location.pathname }} 
-                  className="block px-4 py-2 text-gray-800 hover:bg-gray-100"
-                  onClick={() => setIsProfileOpen(false)}
-                >
-                  Profile
-                </Link>
-              </div>
-            )}
-          </div>
         </header>
 
         <div className="bg-white rounded-lg shadow p-6">
