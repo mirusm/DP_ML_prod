@@ -7,7 +7,6 @@ import DashboardPage from "./DashboardPage";
 import NewPredictionPage from "./NewPredictionPage";
 import HistoryPage from "./HistoryPage";
 import ResultsPage from "./ResultsPage";
-import ProfilePage from "./ProfilePage"; 
 import { AuthProvider } from './contexts/AuthContext'; 
 import ProtectedRoute from './components/ProtectedRoute'; 
 

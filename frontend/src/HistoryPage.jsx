@@ -506,7 +506,7 @@ const HistoryPage = () => {
                     {currentItems.map((item, index) => (
                       <tr key={item.id || index}>
                         <td className="px-6 py-4 whitespace-nowrap">
-                        {new Date(item.date).toLocaleString("sv-SE", {
+                        {new Date(item.date).toLocaleString("de-DE", {
                             year: "numeric",
                             month: "2-digit",
                             day: "2-digit",

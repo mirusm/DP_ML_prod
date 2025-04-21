@@ -6,6 +6,7 @@ from .models import PredictionHistory
 from django.contrib.auth.models import User
 from rest_framework.response import Response
 from rest_framework import status
+from .serializers import PredictionHistorySerializer 
 import cirpy
 import os
 from .functions import (  
@@ -32,26 +33,13 @@ def get_prediction_history(request):
     if not user_id:
         return JsonResponse({"error": "User ID is required"}, status=400)
         
-    history = PredictionHistory.objects.filter(user_id=user_id)
-    data = [{
-        'id': item.id,
-        'user_id': user_id,
-        'date': item.date,
-        'smiles': item.smiles,
-        'cas': item.cas,
-        'model_name': item.model_name,
-        'prediction': item.prediction,
-        'efficiency': item.efficiency,
-        'molecule_image': item.molecule_image,
-        'formula': item.formula,
-        'iupac_name': item.iupac_name,
-        'properties': item.properties,
-        'descriptors': item.descriptors,
-        'shap_plot': item.shap_plot,
-        'user_id': item.user_id
-    } for item in history]
-    return JsonResponse(data, safe=False)
-
+    try:
+        history = PredictionHistory.objects.filter(user_id=user_id)
+        serializer = PredictionHistorySerializer(history, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": f"Failed to fetch prediction history: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
 @api_view(['DELETE'])
 def delete_prediction(request, prediction_id):
     user_id = request.headers.get('User-Id')  

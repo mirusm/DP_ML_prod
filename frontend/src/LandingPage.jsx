@@ -6,17 +6,13 @@ const LandingPage = () => {
   const { currentUser, logout, loading } = useAuth();
 
   useEffect(() => {
-    if (!loading && currentUser) {
+    if (currentUser && location.pathname === '/') {
       console.log("User detected on Landing Page ('/'). Logging out...");
       logout()
-        .then(() => {
-          console.log("Logout successful...");
-        })
-        .catch((error) => {
-          console.error("Error during automatic logout on LandingPage:", error);
-        });
+        .then(() => console.log("Logout successful..."))
+        .catch((error) => console.error("Logout error:", error));
     }
-  }, [currentUser, loading, logout]);
+  }, [currentUser, location.pathname, logout]);
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">

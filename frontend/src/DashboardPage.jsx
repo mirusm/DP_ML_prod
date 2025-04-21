@@ -17,24 +17,27 @@ const DashboardPage = () => {
 
   const fetchLastPredictions = async () => {
     try {
-      const userId = localStorage.getItem("userId");
+      const userId = localStorage.getItem('userId');
       if (!userId) {
         setLoading(false);
         return;
       }
-
       const response = await fetch(`${API_URL}/prediction-history/`, {
-        headers: {
-          "User-Id": userId,
-        },
+        headers: { 'User-Id': userId },
       });
-
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch predictions');
+      }
       const data = await response.json();
-      setPredictions(data.slice(0, 8)); 
+      if (!Array.isArray(data)) {
+        throw new Error('Expected an array of predictions');
+      }
+      setPredictions(data.slice(0, 8));
       setLoading(false);
     } catch (error) {
-      console.error("Error fetching predictions:", error);
-      toast.error("Failed to load predictions");
+      console.error('Error fetching predictions:', error);
+      toast.error('Failed to load predictions');
       setLoading(false);
     }
   };
@@ -121,7 +124,7 @@ const DashboardPage = () => {
                   {predictions.map((item, index) => (
                     <tr key={index}>
                       <td className="px-6 py-4 whitespace-nowrap">
-                      {new Date(item.date).toLocaleString("sv-SE", {
+                      {new Date(item.date).toLocaleString("de-DE", {
                             year: "numeric",
                             month: "2-digit",
                             day: "2-digit",

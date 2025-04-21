@@ -25,6 +25,11 @@ This ML-Powered QSAR full-stack web tool is built with Python, Django (backend),
    ```sh
    pip install -r requirements.txt
    ```
+3. Apply migrations:
+   ```sh
+   python manage.py makemigrations
+   python manage.py migrate
+   ```
 
 ### 🔹 Frontend Setup (React)
 
