@@ -13,14 +13,6 @@ const SignInPage = () => {
   const navigate = useNavigate();
   const { currentUser, loading: authLoading } = useAuth();
   const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
-  
-  useEffect(() => {
-    if (!authLoading && currentUser) {
-      console.log("User already logged in, redirecting...");
-      navigate('/dashboard', { replace: true });
-    }
-  }, [currentUser, authLoading, navigate]);
-
 
   const handleSignIn = async (e) => {
     e.preventDefault(); 

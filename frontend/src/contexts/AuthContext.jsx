@@ -14,6 +14,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      localStorage.removeItem("userId")
       console.log("Auth state changed:", user ? `User UID: ${user.uid}` : "No user");
       setCurrentUser(user);
       setLoading(false);
