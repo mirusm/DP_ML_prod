@@ -1,15 +1,7 @@
 import React, { useState } from "react";
-import { Link, useLocation } from "react-router-dom"; 
 import Sidebar from "./Sidebar";
 
 const InfoPage = () => {
-  const location = useLocation(); 
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-
-  const toggleProfileMenu = () => {
-    setIsProfileOpen(!isProfileOpen);
-  };
-
   return (
     <div className="flex h-screen bg-white">
       <Sidebar />

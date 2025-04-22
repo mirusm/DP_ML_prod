@@ -1,46 +1,72 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useAuth } from "./contexts/AuthContext";
+import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
+import { db } from "./firebase/firebase";
 
 const DashboardPage = () => {
   const navigate = useNavigate();
-  const location = useLocation(); 
+  const { currentUser, loading: authLoading } = useAuth();
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const API_URL =  import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
-  useEffect(() => {
-    fetchLastPredictions();
-  }, []);
+  const [error, setError] = useState(null);
 
-  const fetchLastPredictions = async () => {
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "N/A";
     try {
-      const userId = localStorage.getItem('userId');
-      if (!userId) {
-        setLoading(false);
-        return;
-      }
-      const response = await fetch(`${API_URL}/prediction-history/`, {
-        headers: { 'User-Id': userId },
+      const date = dateStr.toDate ? dateStr.toDate() : new Date(dateStr); 
+      return date.toLocaleDateString("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
       });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch predictions');
-      }
-      const data = await response.json();
-      if (!Array.isArray(data)) {
-        throw new Error('Expected an array of predictions');
-      }
-      setPredictions(data.slice(0, 8));
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const fetchPredictions = async () => {
+    if (!currentUser) {
       setLoading(false);
+      navigate('/sign-in', { replace: true });
+      return;
+    }
+
+    try {
+      const predictionsRef = collection(db, `users/${currentUser.uid}/predictions`);
+      const q = query(predictionsRef, orderBy('date', 'desc'), limit(8));
+      const querySnapshot = await getDocs(q);
+      const predictionsData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setPredictions(predictionsData);
+      setError(null);
     } catch (error) {
-      console.error('Error fetching predictions:', error);
-      toast.error('Failed to load predictions');
+      let errorMessage = 'Failed to load predictions.';
+      if (error.message.includes('net::ERR_BLOCKED_BY_CLIENT')) {
+        errorMessage = 'Unable to load predictions. Please disable ad blockers or allow firestore.googleapis.com.';
+      }
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (authLoading) {
+      console.log("Auth still loading, waiting...");
+      return;
+    }
+    fetchPredictions();
+  }, [authLoading, currentUser, navigate]);
 
   const handleViewResult = (prediction) => {
     const mappedResult = {
@@ -48,7 +74,7 @@ const DashboardPage = () => {
       cas: prediction.cas,
       predictedValue: prediction.prediction,
       efficiency: prediction.efficiency,
-      moleculeImage: prediction.molecule_image,
+      molecule_image: prediction.molecule_image,
       info: {
         prediction: prediction.prediction,
         efficiency: prediction.efficiency,
@@ -63,10 +89,6 @@ const DashboardPage = () => {
       origin: "dashboard",
     };
     navigate("/results", { state: mappedResult });
-  };
-
-  const toggleProfileMenu = () => {
-    setIsProfileOpen(!isProfileOpen);
   };
 
   return (
@@ -104,8 +126,12 @@ const DashboardPage = () => {
               </div>
               <p className="mt-2 text-gray-500">Trying to fetch predictions...</p>
             </div>
-          )  : predictions.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">No predictions available.</p>
+          ) : error ? (
+            <p className="text-red-500 text-center py-4">{error}</p>
+          ) : predictions.length === 0 ? (
+            <p className="text-gray-500 text-center py-4">
+              No predictions available. Create one <Link to="/new-prediction" className="text-blue-600 hover:underline">here</Link>.
+            </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full bg-white">
@@ -122,23 +148,12 @@ const DashboardPage = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {predictions.map((item, index) => (
-                    <tr key={index}>
+                    <tr key={item.id || index}>
                       <td className="px-6 py-4 whitespace-nowrap">
-                      {new Date(item.date).toLocaleString("de-DE", {
-                            year: "numeric",
-                            month: "2-digit",
-                            day: "2-digit",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            hour12: false,
-                          })}
+                        {formatDate(item.date)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {item.smiles}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {item.cas || "-"}
-                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">{item.smiles}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{item.cas || "-"}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {typeof item.prediction === "number"
                           ? item.prediction.toFixed(4)
@@ -157,9 +172,7 @@ const DashboardPage = () => {
                       >
                         {item.efficiency || "-"}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {item.model_name || "-"}
-                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">{item.model_name || "-"}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
                           onClick={() => handleViewResult(item)}
@@ -176,7 +189,7 @@ const DashboardPage = () => {
           )}
         </div>
       </main>
-      <ToastContainer closeButton={false}/>
+      <ToastContainer closeButton={false} />
     </div>
   );
 };

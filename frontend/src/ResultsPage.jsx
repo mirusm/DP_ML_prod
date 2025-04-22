@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import PropertyDisplay from "./PropertyDisplay";
@@ -16,8 +17,15 @@ const ResultPage = () => {
   const [isClickedPopup, setIsClickedPopup] = useState(false);
   const [descriptorInfo, setDescriptorInfo] = useState("");
   const [descriptorKey, setDescriptorKey] = useState("");
-  const [activeTab, setActiveTab] = useState("ALR1"); 
+  const [activeTab, setActiveTab] = useState("ALR1");
   const resultsPerPage = 5;
+
+  // Debug: Log location.state to inspect incoming data
+  useEffect(() => {
+    console.log("ResultPage - location.state:", location.state);
+    console.log("ResultPage - results:", results);
+    console.log("ResultPage - singleResult:", singleResult);
+  }, [location.state, results, singleResult]);
 
   const formatNumber = (num, decimals = 4) => {
     if (num === null || num === undefined) return "N/A";
@@ -25,14 +33,19 @@ const ResultPage = () => {
     return isNaN(number) ? "N/A" : number.toFixed(decimals);
   };
 
-  const alr2Results = results.filter((result) => result.model === "ALR2");
-  const alr1Results = results.filter((result) => result.model === "ALR1");
-
-  const currentResults = activeTab === "ALR1" ? alr1Results: alr2Results;
-  const totalPages = Math.ceil(currentResults.length / resultsPerPage);
-  const startIndex = (currentPage - 1) * resultsPerPage;
-  const endIndex = startIndex + resultsPerPage;
-  const paginatedResults = currentResults.slice(startIndex, endIndex);
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "N/A";
+    try {
+      const date = dateStr.toDate ? dateStr.toDate() : new Date(dateStr); // Handle Firebase Timestamp
+      return date.toLocaleDateString("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+    } catch {
+      return dateStr;
+    }
+  };
 
   const formatFormula = (formula) => {
     if (!formula) return "N/A";
@@ -48,6 +61,27 @@ const ResultPage = () => {
       );
     });
   };
+
+  // Normalize results to handle model vs. model_name
+  const normalizedResults = results.map((result) => ({
+    ...result,
+    model: result.model || result.model_name || "UNKNOWN",
+    predictedValue: result.predictedValue || result.prediction,
+  }));
+
+  const alr2Results = normalizedResults.filter((result) => result.model.toUpperCase() === "ALR2");
+  const alr1Results = normalizedResults.filter((result) => result.model.toUpperCase() === "ALR1");
+  const currentResults = activeTab === "ALR1" ? alr1Results : alr2Results;
+  const totalPages = Math.ceil(currentResults.length / resultsPerPage);
+  const startIndex = (currentPage - 1) * resultsPerPage;
+  const endIndex = startIndex + resultsPerPage;
+  const paginatedResults = currentResults.slice(startIndex, endIndex);
+
+  // Debug: Log filtered results
+  useEffect(() => {
+    console.log(`ResultPage - ${activeTab} results:`, currentResults);
+    console.log("ResultPage - paginatedResults:", paginatedResults);
+  }, [activeTab, currentResults, paginatedResults]);
 
   const handlePreviousPage = () => {
     if (currentPage > 1) {
@@ -87,40 +121,41 @@ const ResultPage = () => {
 
   const exportResultToCSV = () => {
     if (!selectedResult) return;
-  
+
     const basicInfo = {
       SMILES: selectedResult.smiles || "N/A",
       Canonical_SMILES: selectedResult.info?.canonical_smiles || "N/A",
       Formula: selectedResult.info?.formula || "N/A",
       CAS: selectedResult.cas || "N/A",
-      Prediction: selectedResult.predictedValue || "N/A",
+      Prediction: selectedResult.predictedValue || selectedResult.prediction || "N/A",
       Efficiency: selectedResult.efficiency || "N/A",
       IUPAC_name: selectedResult.info?.iupac_name || "N/A",
+      Model: selectedResult.model || selectedResult.model_name || "N/A",
     };
-  
+
     const properties = selectedResult.properties || {};
     const descriptors = selectedResult.descriptors || {};
-  
+
     let csvContent = "Category,Key,Value\n";
-  
+
     Object.entries(basicInfo).forEach(([key, value]) => {
       csvContent += `Basic Info,${key},${value}\n`;
     });
-  
+
     Object.entries(properties).forEach(([key, value]) => {
       csvContent += `Properties,${key},${value}\n`;
     });
-  
+
     Object.entries(descriptors).forEach(([key, descriptor]) => {
       csvContent += `Descriptors,${key}_value,${descriptor.value}\n`;
       csvContent += `Descriptors,${key}_importance,${descriptor.importance}\n`;
     });
-  
+
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", "compound_result.csv");
+    link.setAttribute("download", `compound_result_${basicInfo.Model}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -184,7 +219,6 @@ const ResultPage = () => {
     default: `This is a molecular descriptor calculated using RDKit. It represents a feature of the molecule used in the prediction model. Specific details depend on the descriptor type. For more information, refer to RDKit documentation or the model's feature definitions.`,
   };
 
-
   const handleShowDescriptorInfoHover = (key) => {
     if (!isClickedPopup) {
       const info = descriptorDescriptions[key] || descriptorDescriptions.default;
@@ -215,12 +249,18 @@ const ResultPage = () => {
       <div className="flex h-screen bg-gray-100">
         <Sidebar />
         <div className="container mx-auto p-4">
-          <h2 className="text-2xl font-bold text-red-600">No data available</h2>
+          <h2 className="text-2xl font-bold text-red-600">No results available</h2>
+          <p className="text-gray-500 mt-2">
+            No prediction results were found. Try running a new prediction{" "}
+            <Link to="/new-prediction" className="text-blue-600 hover:underline">
+              here
+            </Link>.
+          </p>
           <Link
-            to="/"
+            to="/dashboard"
             className="mt-4 inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
           >
-            Back to home
+            Back to dashboard
           </Link>
         </div>
       </div>
@@ -234,7 +274,7 @@ const ResultPage = () => {
         <div className="flex-1 p-6 ml-64 overflow-y-auto">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-blue-700">
-              Prediction result details - {selectedResult.model || selectedResult.model_name}
+              Prediction result details - {selectedResult.model || selectedResult.model_name || "Unknown"}
             </h2>
             {results.length > 0 && (
               <button
@@ -267,7 +307,7 @@ const ResultPage = () => {
                   </p>
                   <p>
                     <span className="font-semibold">Prediction:</span>{" "}
-                    {formatNumber(selectedResult.predictedValue || "N/A")}
+                    {formatNumber(selectedResult.predictedValue || selectedResult.prediction)}
                   </p>
                   <p>
                     <span className="font-semibold">Efficiency:</span>{" "}
@@ -292,7 +332,7 @@ const ResultPage = () => {
                   <div className="space-y-2">
                     <p>
                       <span className="font-semibold">Num. heavy atoms:</span>{" "}
-                      {selectedResult.numHeavyAtoms || "N/A"}
+                      {selectedResult.numHeavyAtoms || selectedResult.properties.num_heavy_atoms || "N/A"}
                     </p>
                     <p>
                       <span className="font-semibold">Num. aromatic atoms:</span>{" "}
@@ -362,14 +402,15 @@ const ResultPage = () => {
             </div>
 
             <div className="space-y-6">
-              {selectedResult.moleculeImage && (
+              {selectedResult.molecule_image && (
                 <div className="bg-white p-4 rounded-lg shadow">
                   <h3 className="font-bold mb-2 text-green-600">Molecule structure</h3>
                   <img
-                    src={`data:image/png;base64,${selectedResult.moleculeImage}`}
+                    src={`data:image/png;base64,${selectedResult.molecule_image}`}
                     alt="Molecule structure"
                     className="w-full cursor-pointer"
-                    onClick={() => handleImageClick(`data:image/png;base64,${selectedResult.moleculeImage}`)}
+                    onClick={() => handleImageClick(`data:image/png;base64,${selectedResult.molecule_image}`)}
+                    onError={() => console.error("Failed to load molecule image")}
                   />
                 </div>
               )}
@@ -382,6 +423,7 @@ const ResultPage = () => {
                     alt="SHAP plot - top features"
                     className="w-full cursor-pointer"
                     onClick={() => handleImageClick(`data:image/png;base64,${selectedResult.shap_plot}`)}
+                    onError={() => console.error("Failed to load SHAP plot")}
                   />
                 </div>
               )}
@@ -438,11 +480,9 @@ const ResultPage = () => {
       <div className="flex-1 p-6 ml-64 overflow-y-auto">
         <h2 className="text-2xl font-bold mb-6 text-blue-700">Prediction results</h2>
 
-        {/* Tabs for ALR2 and ALR1 */}
-        
         <div className="mb-6">
           <button
-            className={`px-4 py-2 rounded cursor-pointer ${activeTab === "ALR1" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-800"}`}
+            className={`px-4 py-2 mr-2 rounded cursor-pointer ${activeTab === "ALR1" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-800"}`}
             onClick={() => {
               setActiveTab("ALR1");
               setCurrentPage(1);
@@ -451,7 +491,7 @@ const ResultPage = () => {
             ALR1 Results
           </button>
           <button
-            className={`px-4 py-2 mr-2 rounded cursor-pointer ${activeTab === "ALR2" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-800"}`}
+            className={`px-4 py-2 rounded cursor-pointer ${activeTab === "ALR2" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-800"}`}
             onClick={() => {
               setActiveTab("ALR2");
               setCurrentPage(1);
@@ -462,82 +502,101 @@ const ResultPage = () => {
         </div>
 
         <div className="bg-white rounded-lg shadow p-6">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr>
-                <th className="p-2 text-gray-600">Date</th>
-                <th className="p-2 text-gray-600">SMILES</th>
-                <th className="p-2 text-gray-600">CAS</th>
-                <th className="p-2 text-gray-600">Predicted value</th>
-                <th className="p-2 text-gray-600">Efficiency</th>
-                <th className="p-2 text-gray-600">Num. heavy atoms</th>
-                <th className="p-2 text-gray-600">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedResults.map((result, index) => (
-                <tr key={index}>
-                  <td className="p-2 text-gray-800">{result.date}</td>
-                  <td className="p-2 text-gray-800">{result.smiles}</td>
-                  <td className="p-2 text-gray-800">{result.cas || "-"}</td>
-                  <td className="p-2 text-gray-800">{result.predictedValue}</td>
-                  <td
-                    className="p-2 text-gray-800"
-                    style={{
-                      color: result.efficiency === "Effective" ? "green" : "red",
-                    }}
-                  >
-                    {result.efficiency}
-                  </td>
-                  <td className="p-2 text-gray-800">{result.numHeavyAtoms}</td>
-                  <td className="p-2">
-                    <button
-                      onClick={() => handleViewDetails(result)}
-                      className="bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700"
-                    >
-                      View details
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {paginatedResults.length === 0 ? (
+            <p className="text-gray-500 text-center py-4">
+              No results available for {activeTab}. Try running a new prediction{" "}
+              <Link to="/new-prediction" className="text-blue-600 hover:underline">
+                here
+              </Link>.
+            </p>
+          ) : (
+            <>
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr>
+                    <th className="p-2 text-gray-600">Date</th>
+                    <th className="p-2 text-gray-600">SMILES</th>
+                    <th className="p-2 text-gray-600">CAS</th>
+                    <th className="p-2 text-gray-600">Predicted value</th>
+                    <th className="p-2 text-gray-600">Efficiency</th>
+                    <th className="p-2 text-gray-600">Num. heavy atoms</th>
+                    <th className="p-2 text-gray-600">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedResults.map((result, index) => (
+                    <tr key={index}>
+                      <td className="p-2 text-gray-800">{formatDate(result.date)}</td>
+                      <td className="p-2 text-gray-800">{result.smiles || "N/A"}</td>
+                      <td className="p-2 text-gray-800">{result.cas || "-"}</td>
+                      <td className="p-2 text-gray-800">{formatNumber(result.predictedValue)}</td>
+                      <td
+                        className="p-2 text-gray-800"
+                        style={{
+                          color: result.efficiency === "Effective" ? "green" : "red",
+                        }}
+                      >
+                        {result.efficiency || "N/A"}
+                      </td>
+                      <td className="p-2 text-gray-800">
+                        {result.numHeavyAtoms || result.properties?.num_heavy_atoms || "N/A"}
+                      </td>
+                      <td className="p-2">
+                        <button
+                          onClick={() => handleViewDetails(result)}
+                          className="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700"
+                        >
+                          View details
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
 
-          <div className="flex justify-between items-center mt-4">
-            <button
-              onClick={handlePreviousPage}
-              disabled={currentPage === 1}
-              className={`px-4 py-2 rounded text-white cursor-pointer ${
-                currentPage === 1
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700"
-              }`}
-            >
-              Previous
-            </button>
-            <span className="text-gray-700">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              onClick={handleNextPage}
-              disabled={currentPage === totalPages}
-              className={`px-4 py-2 rounded text-white cursor-pointer ${
-                currentPage === totalPages
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700"
-              }`}
-            >
-              Next
-            </button>
-          </div>
+              <div className="flex justify-between items-center mt-4">
+                <button
+                  onClick={handlePreviousPage}
+                  disabled={currentPage === 1}
+                  className={`px-4 py-2 rounded text-white cursor-pointer ${
+                    currentPage === 1
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-700"
+                  }`}
+                >
+                  Previous
+                </button>
+                <span className="text-gray-700">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages}
+                  className={`px-4 py-2 rounded text-white cursor-pointer ${
+                    currentPage === totalPages
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-700"
+                  }`}
+                >
+                  Next
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="mt-6 text-white">
           <Link
             to="/new-prediction"
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            className="bg-blue-500 text-white px-4 py-3 rounded hover:bg-blue-600"
           >
             Back to new prediction
+          </Link>
+          <Link
+            to={origin === "dashboard" ? "/dashboard" : "/my-predictions"}
+            className="bg-gray-500 text-white px-4 py-3 rounded hover:bg-gray-600 ml-4"
+          >
+            {origin === "dashboard" ? "Back to dashboard" : "Back to history"}
           </Link>
         </div>
       </div>

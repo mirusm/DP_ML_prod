@@ -39,7 +39,7 @@ def get_prediction_history(request):
         return Response(serializer.data, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({"error": f"Failed to fetch prediction history: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
 @api_view(['DELETE'])
 def delete_prediction(request, prediction_id):
     user_id = request.headers.get('User-Id')  
@@ -53,7 +53,7 @@ def delete_prediction(request, prediction_id):
         return JsonResponse({"error": "Prediction not found or unauthorized"}, status=404)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-
+    
 def resolve_smiles_from_cas(cas):
     if not cas_validation(cas):
         return "Error: Invalid CAS number"
@@ -208,17 +208,23 @@ def get_user_info(request):
 def register_user(request):
     email = request.data.get('email')
     password = request.data.get('password')
+    firebase_uid = request.data.get('firebase_uid')
 
-    if not email or not password:
-        return Response({"error": "Email and password are required"}, status=status.HTTP_400_BAD_REQUEST)
+    if not email or not password or not firebase_uid:
+        return Response({"error": "Email, password, and Firebase UID are required"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        user = User.objects.create_user(username=email, email=email, password=password)
+        user = User.objects.create_user(
+            username=email,
+            email=email,
+            password=password,
+            id=firebase_uid  
+        )
         user.save()
-        
         return Response({
-            "id": user.id, 
+            "id": user.id,
             "email": user.email,
         })
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
