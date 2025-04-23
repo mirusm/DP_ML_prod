@@ -20,13 +20,6 @@ const ResultPage = () => {
   const [activeTab, setActiveTab] = useState("ALR1");
   const resultsPerPage = 5;
 
-  // Debug: Log location.state to inspect incoming data
-  useEffect(() => {
-    console.log("ResultPage - location.state:", location.state);
-    console.log("ResultPage - results:", results);
-    console.log("ResultPage - singleResult:", singleResult);
-  }, [location.state, results, singleResult]);
-
   const formatNumber = (num, decimals = 4) => {
     if (num === null || num === undefined) return "N/A";
     const number = Number(num);
@@ -65,7 +58,7 @@ const ResultPage = () => {
   // Normalize results to handle model vs. model_name
   const normalizedResults = results.map((result) => ({
     ...result,
-    model: result.model || result.model_name || "UNKNOWN",
+    model: result.model || result.model_name || "N/A",
     predictedValue: result.predictedValue || result.prediction,
   }));
 
@@ -76,12 +69,6 @@ const ResultPage = () => {
   const startIndex = (currentPage - 1) * resultsPerPage;
   const endIndex = startIndex + resultsPerPage;
   const paginatedResults = currentResults.slice(startIndex, endIndex);
-
-  // Debug: Log filtered results
-  useEffect(() => {
-    console.log(`ResultPage - ${activeTab} results:`, currentResults);
-    console.log("ResultPage - paginatedResults:", paginatedResults);
-  }, [activeTab, currentResults, paginatedResults]);
 
   const handlePreviousPage = () => {
     if (currentPage > 1) {

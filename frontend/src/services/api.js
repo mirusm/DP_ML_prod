@@ -33,10 +33,8 @@ export const predictMolecule = async (data) => {
 export const getPredictionHistory = async () => {
   try {
     const response = await axios.get(`${API_URL}/prediction-history/`);
-    console.log('API Response:', response); // Debug log
     return response.data;
   } catch (error) {
-    console.error('API Error:', error); // Debug log
     throw error;
   }
 }; 

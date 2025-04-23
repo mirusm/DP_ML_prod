@@ -65,12 +65,10 @@ const HistoryPage = () => {
           ...doc.data(),
           date: doc.data().date?.toDate?.() || new Date(doc.data().date), // Handle Timestamp or ISO string
         }));
-        console.log("Fetched predictions:", data);
         setPredictions(data);
         setFilteredPredictions(data);
         setError(null);
       } catch (err) {
-        console.error("Error fetching predictions:", err);
         let errorMessage = "Failed to load predictions.";
         if (err.message.includes("net::ERR_BLOCKED_BY_CLIENT")) {
           errorMessage = "Unable to load predictions. Please disable ad blockers or allow firestore.googleapis.com.";
@@ -94,8 +92,10 @@ const HistoryPage = () => {
     const lowerCaseFilter = filterText.toLowerCase();
     const filtered = predictions.filter((item) => {
       if (filterColumn === "all") {
+        const dateStr = formatDate(item.date).toLowerCase();
+
         return (
-          new Date(item.date).toLocaleDateString("de-DE").toLowerCase().includes(lowerCaseFilter) ||
+          dateStr.includes(lowerCaseFilter) ||
           (item.smiles && item.smiles.toLowerCase().includes(lowerCaseFilter)) ||
           (item.cas && item.cas.toLowerCase().includes(lowerCaseFilter)) ||
           (item.prediction &&
@@ -108,8 +108,11 @@ const HistoryPage = () => {
       } else {
         const value = item[filterColumn];
         if (!value) return false;
+  
         if (filterColumn === "date") {
-          return new Date(value).toLocaleDateString("de-DE").toLowerCase().includes(lowerCaseFilter);
+          const dateStr = formatDate(item.date).toLowerCase();
+          console.log(`Comparing dateStr: "${dateStr}" with filter: "${lowerCaseFilter}"`); 
+          return dateStr.startsWith(lowerCaseFilter);
         }
         if (filterColumn === "prediction") {
           return (typeof value === "number" ? value.toFixed(4) : value.toString())
@@ -120,7 +123,6 @@ const HistoryPage = () => {
       }
     });
 
-    console.log("Filtered predictions:", filtered);
     setFilteredPredictions(filtered);
     setCurrentPage(1);
   }, [filterText, filterColumn, predictions]);
@@ -187,6 +189,14 @@ const HistoryPage = () => {
     navigate("/results", { state: mappedResult });
   };
 
+  const formatDate = (date) => {
+    if (!(date instanceof Date) || isNaN(date.getTime())) return "";
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}.${month}.${year}`;
+  };
+  
   const getHistogramData = () => {
     const alr1Values = filteredPredictions
       .filter((item) => item.model_name === "ALR1")

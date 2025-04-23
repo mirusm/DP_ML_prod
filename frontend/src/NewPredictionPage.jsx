@@ -18,7 +18,7 @@ const NewPredictionPage = ({ onResults }) => {
   const [pipelineEntries, setPipelineEntries] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [isRunning, setIsRunning] = useState(false);
-  const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
+  const API_URL =  import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
   const handleInputTypeChange = (e) => {
     const newInputType = e.target.value;
@@ -79,7 +79,6 @@ const NewPredictionPage = ({ onResults }) => {
     try {
       let allResults = [];
       for (const entry of pipelineEntries) {
-        console.log("Sending API request for entry:", entry);
         const response = await fetch(`${API_URL}/upload/`, {
           method: "POST",
           headers: {
@@ -93,7 +92,6 @@ const NewPredictionPage = ({ onResults }) => {
           }),
         });
 
-        console.log("API response status:", response.status);
         if (!response.ok) {
           const text = await response.text();
           console.error("API error response:", text);
@@ -108,7 +106,6 @@ const NewPredictionPage = ({ onResults }) => {
         }
 
         const data = await response.json();
-        console.log("API response data:", data);
         allResults.push(data);
       }
 
@@ -232,44 +229,45 @@ const NewPredictionPage = ({ onResults }) => {
           ) : pipelineEntries.length === 0 ? (
             <p className="text-gray-500">No entries added yet.</p>
           ) : (
-            <div className="max-h-64 overflow-y-auto">
-              <table className="w-full text-left border-collapse">
-                <thead className="sticky top-0 bg-white">
-                  <tr>
-                    <th className="p-2 text-gray-600">SMILES code</th>
-                    <th className="p-2 text-gray-600">CAS code</th>
-                    <th className="p-2 text-gray-600">Actions</th>
+            <div className="max-h-96 overflow-y-auto">
+            <table className="w-full text-left border-collapse">
+              <thead className="sticky top-0 bg-white">
+                <tr>
+                  <th className="p-2 text-gray-600">SMILES code</th>
+                  <th className="p-2 text-gray-600">CAS code</th>
+                  <th className="p-2 text-gray-600">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pipelineEntries.map((entry, index) => (
+                  <tr key={index}>
+                    <td className="p-2 text-gray-800">{entry.smiles || "-"}</td>
+                    <td className="p-2 text-gray-800">{entry.cas || "-"}</td>
+                    <td className="p-2">
+                      <button
+                        onClick={() => handleDelete(index)}
+                        className="bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700 cursor-pointer"
+                      >
+                        Delete
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {pipelineEntries.map((entry, index) => (
-                    <tr key={index}>
-                      <td className="p-2 text-gray-800">{entry.smiles || "-"}</td>
-                      <td className="p-2 text-gray-800">{entry.cas || "-"}</td>
-                      <td className="p-2">
-                        <button
-                          onClick={() => handleDelete(index)}
-                          className="bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700 cursor-pointer"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
           )}
           <button
             onClick={handleRun}
             disabled={isRunning}
             className={`mt-4 ${
               isRunning
-                ? "bg-green-500 cursor-not-allowed"
+                ? "bg-gray-400 cursor-not-allowed opacity-50"
                 : "bg-green-600 hover:bg-green-700"
-            } text-white cursor-pointer px-4 py-2 rounded text-lg transition duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 min-w-[100px]`}
+            } text-white px-4 py-2 rounded text-lg transition duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 min-w-[100px]`}
+            title={isRunning ? "Processing, please wait..." : "Run the prediction pipeline"}
           >
-            Run
+          {isRunning ? "Running..." : "Run"}
           </button>
         </div>
       </main>
