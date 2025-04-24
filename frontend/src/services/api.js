@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { auth } from '../firebase/firebase';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+const API_URL =  import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
 const getAuthHeader = async () => {
   const user = auth.currentUser;
@@ -33,10 +33,8 @@ export const predictMolecule = async (data) => {
 export const getPredictionHistory = async () => {
   try {
     const response = await axios.get(`${API_URL}/prediction-history/`);
-    console.log('API Response:', response); // Debug log
     return response.data;
   } catch (error) {
-    console.error('API Error:', error); // Debug log
     throw error;
   }
 }; 

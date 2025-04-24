@@ -13,6 +13,9 @@ import {
 } from "chart.js";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useAuth } from "./contexts/AuthContext";
+import { collection, query, getDocs, doc, deleteDoc, orderBy } from "firebase/firestore";
+import { db } from "./firebase/firebase";
 
 // Register Chart.js components
 ChartJS.register(
@@ -34,44 +37,51 @@ const HistoryPage = () => {
   const [filterColumn, setFilterColumn] = useState("all");
   const rowsPerPage = 9;
   const navigate = useNavigate();
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+  const { currentUser, authLoading } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
+      if (authLoading) {
+        console.log("Auth still loading, waiting...");
+        return;
+      }
+
+      if (!currentUser) {
+        console.log("No user, redirecting to sign-in");
+        setError("Please log in to view your prediction history");
+        setLoading(false);
+        navigate("/sign-in", { replace: true });
+        return;
+      }
+
       try {
-        const userId = localStorage.getItem("userId");
-        if (!userId) {
-          setError("Please log in to view your prediction history");
-          setLoading(false);
-          return;
-        }
+        console.log("Fetching predictions for user:", currentUser.uid);
+        const predictionsRef = collection(db, `users/${currentUser.uid}/predictions`);
+        const q = query(predictionsRef, orderBy("date", "desc")); // Sort by date descending
+        const querySnapshot = await getDocs(q);
 
-        // Simulate delay to observe animation
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-
-        const response = await fetch(`${API_URL}/prediction-history/`, {
-          headers: {
-            "User-Id": userId,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch predictions");
-        }
-
-        const data = await response.json();
+        const data = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          date: doc.data().date?.toDate?.() || new Date(doc.data().date), // Handle Timestamp or ISO string
+        }));
         setPredictions(data);
         setFilteredPredictions(data);
+        setError(null);
       } catch (err) {
-        console.error("Error:", err);
-        setError(err.message);
+        let errorMessage = "Failed to load predictions.";
+        if (err.message.includes("net::ERR_BLOCKED_BY_CLIENT")) {
+          errorMessage = "Unable to load predictions. Please disable ad blockers or allow firestore.googleapis.com.";
+        }
+        setError(errorMessage);
+        toast.error(errorMessage);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [authLoading, currentUser, navigate]);
 
   useEffect(() => {
     if (!filterText) {
@@ -82,8 +92,10 @@ const HistoryPage = () => {
     const lowerCaseFilter = filterText.toLowerCase();
     const filtered = predictions.filter((item) => {
       if (filterColumn === "all") {
+        const dateStr = formatDate(item.date).toLowerCase();
+
         return (
-          new Date(item.date).toLocaleString("de-DE").toLowerCase().includes(lowerCaseFilter) ||
+          dateStr.includes(lowerCaseFilter) ||
           (item.smiles && item.smiles.toLowerCase().includes(lowerCaseFilter)) ||
           (item.cas && item.cas.toLowerCase().includes(lowerCaseFilter)) ||
           (item.prediction &&
@@ -96,8 +108,11 @@ const HistoryPage = () => {
       } else {
         const value = item[filterColumn];
         if (!value) return false;
+  
         if (filterColumn === "date") {
-          return new Date(value).toLocaleString("de-DE").toLowerCase().includes(lowerCaseFilter);
+          const dateStr = formatDate(item.date).toLowerCase();
+          console.log(`Comparing dateStr: "${dateStr}" with filter: "${lowerCaseFilter}"`); 
+          return dateStr.startsWith(lowerCaseFilter);
         }
         if (filterColumn === "prediction") {
           return (typeof value === "number" ? value.toFixed(4) : value.toString())
@@ -127,45 +142,27 @@ const HistoryPage = () => {
     setCurrentPage(1);
   };
 
-  const handleDeleteResult = async (predictionToDelete) => {
-    if (!predictionToDelete.id) {
-      console.error("Prediction has no ID:", predictionToDelete);
-      toast.error("Cannot delete prediction: No ID found");
-      return;
-    }
-
-    const userId = localStorage.getItem("userId");
-    if (!userId) {
-      toast.error("Please log in to delete predictions");
-      setError("Please log in to delete predictions");
-      return;
-    }
-
+  const handleDeleteResult = async (prediction) => {
     try {
-      const response = await fetch(`${API_URL}/prediction/${predictionToDelete.id}/delete/`, {
-        method: "DELETE",
-        headers: {
-          "User-Id": userId,
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("Delete error:", response.status, errorData);
-        throw new Error(errorData.error || "Failed to delete prediction");
+      if (!currentUser) {
+        throw new Error("User not authenticated. Please log in.");
       }
 
-      const updatedPredictions = predictions.filter(
-        (prediction) => prediction.id !== predictionToDelete.id
-      );
-      setPredictions(updatedPredictions);
-      setFilteredPredictions(updatedPredictions);
-      toast.success("Prediction deleted successfully");
-      setError(null);
-    } catch (error) {
-      console.error("Failed to delete prediction:", error);
-      toast.error(error.message || "Failed to delete prediction. Please try again.");
-      setError(error.message || "Failed to delete prediction. Please try again.");
+      console.log("Deleting prediction:", prediction.id, "for user:", currentUser.uid);
+      const predictionRef = doc(db, `users/${currentUser.uid}/predictions`, prediction.id);
+      await deleteDoc(predictionRef);
+
+      setPredictions(predictions.filter((pred) => pred.id !== prediction.id));
+      setFilteredPredictions(filteredPredictions.filter((pred) => pred.id !== prediction.id));
+      toast.success("Prediction deleted successfully.");
+    } catch (err) {
+      console.error("Error deleting prediction:", err);
+      let errorMessage = "Failed to delete prediction.";
+      if (err.message.includes("net::ERR_BLOCKED_BY_CLIENT")) {
+        errorMessage = "Unable to delete prediction. Please disable ad blockers or allow firestore.googleapis.com.";
+      }
+      setError(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -175,7 +172,7 @@ const HistoryPage = () => {
       cas: prediction.cas,
       predictedValue: prediction.prediction,
       efficiency: prediction.efficiency,
-      moleculeImage: prediction.molecule_image,
+      molecule_image: prediction.molecule_image,
       info: {
         prediction: prediction.prediction,
         efficiency: prediction.efficiency,
@@ -192,15 +189,29 @@ const HistoryPage = () => {
     navigate("/results", { state: mappedResult });
   };
 
+  const formatDate = (date) => {
+    if (!(date instanceof Date) || isNaN(date.getTime())) return "";
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}.${month}.${year}`;
+  };
+  
   const getHistogramData = () => {
     const alr1Values = filteredPredictions
       .filter((item) => item.model_name === "ALR1")
-      .map((item) => (typeof item.prediction === "number" ? item.prediction : NaN))
+      .map((item) => {
+        const value = typeof item.prediction === "number" ? item.prediction : parseFloat(item.prediction);
+        return isNaN(value) ? NaN : value;
+      })
       .filter((val) => !isNaN(val));
 
     const alr2Values = filteredPredictions
       .filter((item) => item.model_name === "ALR2")
-      .map((item) => (typeof item.prediction === "number" ? item.prediction : NaN))
+      .map((item) => {
+        const value = typeof item.prediction === "number" ? item.prediction : parseFloat(item.prediction);
+        return isNaN(value) ? NaN : value;
+      })
       .filter((val) => !isNaN(val));
 
     const allValues = [...alr1Values, ...alr2Values];
@@ -229,7 +240,7 @@ const HistoryPage = () => {
 
     const min = Math.min(...allValues);
     const max = Math.max(...allValues) + 1;
-    const step = (max - min) / 10 || 1; // Avoid division by zero
+    const step = (max - min) / 10 || 1;
     const labels = Array.from({ length: 10 }, (_, i) =>
       `${(min + i * step).toFixed(2)} - ${(min + (i + 1) * step).toFixed(2)}`
     );
@@ -506,13 +517,10 @@ const HistoryPage = () => {
                     {currentItems.map((item, index) => (
                       <tr key={item.id || index}>
                         <td className="px-6 py-4 whitespace-nowrap">
-                        {new Date(item.date).toLocaleString("de-DE", {
+                          {new Date(item.date).toLocaleDateString("de-DE", {
                             year: "numeric",
                             month: "2-digit",
                             day: "2-digit",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            hour12: false,
                           })}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">{item.smiles}</td>
@@ -538,13 +546,13 @@ const HistoryPage = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button
                             onClick={() => handleViewResult(item)}
-                            className="bg-blue-500 text-current text-white px-3 py-2 rounded hover:bg-blue-600 cursor-pointer"
+                            className="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 cursor-pointer"
                           >
                             View
                           </button>
                           <button
                             onClick={() => handleDeleteResult(item)}
-                            className="bg-red-500 text-current text-white px-3 py-2 rounded hover:bg-red-600 ml-2 cursor-pointer"
+                            className="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 ml-2 cursor-pointer"
                           >
                             Delete
                           </button>

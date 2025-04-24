@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from './firebase/firebase';
-import { useNavigate } from 'react-router-dom';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 
 const SignInPage = () => {
@@ -12,40 +11,35 @@ const SignInPage = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const { currentUser, loading: authLoading } = useAuth();
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+
+  useEffect(() => {
+    if (!authLoading && currentUser) {
+      console.log("User already logged in, redirecting...");
+      navigate('/dashboard', { replace: true });
+    }
+  }, [currentUser, authLoading, navigate]);
 
   const handleSignIn = async (e) => {
-    e.preventDefault(); 
-    
+    e.preventDefault();
     if (!email || !password) {
       setError("Please fill in all fields");
       return;
     }
-
     try {
       setLoading(true);
       setError(null);
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user; 
-
-      const response = await fetch(`${API_URL}/get_user_info/`, {
-        method: 'GET',
-        headers: {
-          'Email': email 
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch user information');
-      }
-
-      const userInfo = await response.json();
-      localStorage.setItem('userId', userInfo.id);
-
-      navigate('/dashboard');
+      await signInWithEmailAndPassword(auth, email, password);
+      navigate('/dashboard', { replace: true });
     } catch (err) {
-      console.error("Sign in error:", err);
-      setError(err.message || "Failed to sign in");
+      let errorMessage = "Failed to sign in. Please try again.";
+      if (err.code === 'auth/invalid-credential') {
+        errorMessage = "Invalid email or password.";
+      } else if (err.code === 'auth/user-disabled') {
+        errorMessage = "This account has been disabled.";
+      } else if (err.code === 'auth/too-many-requests') {
+        errorMessage = "Too many attempts. Please try again later.";
+      }
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -59,15 +53,13 @@ const SignInPage = () => {
     <div className="flex h-screen">
       <div className="w-1/2 flex items-center justify-center bg-white p-8 relative">
         <div className="text-white">
-        <button
-          onClick={handleBackToLanding}
-          className="absolute top-4 left-4 hover:underline text-current focus:outline-none"
-        >
-          ← Back
-        </button>
+          <button
+            onClick={handleBackToLanding}
+            className="absolute top-4 left-4 hover:underline text-current focus:outline-none"
+          >
+            ← Back
+          </button>
         </div>
-        
-
         <div className="w-full max-w-md">
           <h1 className="text-4xl font-bold mb-6 text-blue-600 text-center">Welcome back</h1>
           <p className="text-gray-500 text-sm mb-8 text-center">
@@ -104,14 +96,13 @@ const SignInPage = () => {
             </p>
           )}
           <p className="text-gray-500 text-sm mt-4 text-center">
-            <a href="/forgot-password" className="text-blue-600 hover:underline">Forgot password?</a>
+            <Link to="/forgot-password" className="text-blue-600 hover:underline">Forgot password?</Link>
           </p>
         </div>
       </div>
-
-      <div 
+      <div
         className="w-1/2 bg-cover bg-center"
-        style={{ backgroundImage: 'url(/sign-in.jpg)' }}   
+        style={{ backgroundImage: 'url(/sign-in.jpg)' }}
       >
         <div className="h-full w-full bg-black opacity-50"></div>
       </div>
