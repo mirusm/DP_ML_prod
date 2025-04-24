@@ -178,10 +178,6 @@ def upload_dataset(request):
         except Exception as e:
             return Response({"error": f"Failed to save prediction history: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        shap_file = 'shap_waterfall_top10.png'
-        if os.path.exists(shap_file):
-            os.remove(shap_file)
-
         return Response({
             "ALR2": {
                 "molecule_image": mol_image_base64,

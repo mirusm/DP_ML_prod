@@ -79,6 +79,27 @@ def get_descriptors(mol):
     
     return pd.DataFrame([descriptor_values])
 
+def generate_shap_waterfall_plot(shap_values, expected_value, data, feature_names, max_display=10):
+    try:
+        plt.switch_backend('Agg')
+        plt.figure(figsize=(10, 6))
+        shap.waterfall_plot(
+            shap.Explanation(
+                values=shap_values,
+                base_values=expected_value,
+                data=data,
+                feature_names=feature_names
+            ),
+            max_display=max_display
+        )
+        buffered = BytesIO()
+        plt.savefig(buffered, format="PNG", dpi=300, bbox_inches='tight', facecolor='white')
+        plt.close('all')          
+        return base64.b64encode(buffered.getvalue()).decode("utf-8")
+    
+    except Exception as e:
+        return None
+    
 # Visualize a molecule from a SMILES string
 def visualize_molecule(smiles):
     mol = Chem.MolFromSmiles(smiles)
@@ -154,17 +175,15 @@ def predict_xgboost(smiles, model_path, train_data_path):
         top_10_features = feature_importance['Feature'].head(10).tolist()
         
         top_10_indices = [REQUIRED_FEATURES.index(f) for f in top_10_features]
-        plt.figure(figsize=(10, 6))
-        shap.waterfall_plot(shap.Explanation(
-            values=shap_values[0][top_10_indices],
-            base_values=explainer.expected_value,
+        encoded_top_10 = generate_shap_waterfall_plot(
+            shap_values=shap_values[0][top_10_indices],
+            expected_value=explainer.expected_value,
             data=desc_df.iloc[0][top_10_features],
-            feature_names=top_10_features
-        ), max_display=10)
-        plt.savefig('shap_waterfall_top10.png', dpi=300, bbox_inches='tight', facecolor='white')
-        with open('shap_waterfall_top10.png', 'rb') as image_file:
-            encoded_top_10 = base64.b64encode(image_file.read()).decode('utf-8')
-        plt.close('all')
+            feature_names=top_10_features,
+            max_display=10
+        )
+        if encoded_top_10 is None:
+            return None, None, None, "Failed to generate SHAP plot", None, None
 
         important_descriptors = {
             feature: {
@@ -222,19 +241,18 @@ def predict_svr(smiles, model_path, train_data_path):
         "Importance": importance
     }).sort_values(by="Importance", ascending=False)
     top_10_features = feature_importance['Feature'].head(10).tolist()
-    
-    # Waterfall plot for top 10 features
     top_10_indices = [REQUIRED_FEATURES.index(f) for f in top_10_features]
-    plt.figure(figsize=(10, 6))
-    shap.waterfall_plot(shap.Explanation(values=shap_values[0][top_10_indices],
-                                       base_values=explainer.expected_value,
-                                       data=model_input.iloc[0][top_10_features],
-                                       feature_names=top_10_features),
-                       max_display=10)
-    plt.savefig('shap_waterfall_top10.png', dpi=300, bbox_inches='tight', facecolor='white')
-    with open('shap_waterfall_top10.png', 'rb') as image_file:
-        encoded_top_10 = base64.b64encode(image_file.read()).decode('utf-8')
-    plt.close('all')  
+
+    encoded_top_10 = generate_shap_waterfall_plot(
+        shap_values=shap_values[0][top_10_indices],
+        expected_value=explainer.expected_value,
+        data=model_input.iloc[0][top_10_features],
+        feature_names=top_10_features,
+        max_display=10
+    )
+
+    if encoded_top_10 is None:
+        return None, None, None, "Failed to generate SHAP plot", None, None
 
     # Prepare important descriptors dictionary
     important_descriptors = {

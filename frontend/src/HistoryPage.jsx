@@ -104,6 +104,7 @@ const HistoryPage = () => {
               : item.prediction.toString()
             ).toLowerCase().includes(lowerCaseFilter)) ||
           (item.efficiency && item.efficiency.toLowerCase().includes(lowerCaseFilter))
+          (item.model_name && item.model_name.toLowerCase().includes(lowerCaseFilter))
         );
       } else {
         const value = item[filterColumn];
@@ -455,6 +456,7 @@ const HistoryPage = () => {
                 <option value="cas">CAS</option>
                 <option value="prediction">Prediction</option>
                 <option value="efficiency">Efficiency</option>
+                <option value="model_name">Type</option>
               </select>
             </div>
 
@@ -509,6 +511,9 @@ const HistoryPage = () => {
                         Efficiency
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Model type
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -543,6 +548,7 @@ const HistoryPage = () => {
                         >
                           {item.efficiency || "-"}
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap">{item.model_name || "-"}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button
                             onClick={() => handleViewResult(item)}
