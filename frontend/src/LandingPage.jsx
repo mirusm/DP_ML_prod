@@ -7,7 +7,6 @@ const LandingPage = () => {
 
   useEffect(() => {
     if (currentUser && location.pathname === '/') {
-      console.log("User detected on Landing Page ('/'). Logging out...");
       logout()
         .then(() => console.log("Logout successful..."))
         .catch((error) => console.error("Logout error:", error));
