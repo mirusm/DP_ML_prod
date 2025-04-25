@@ -162,9 +162,10 @@ def predict_xgboost(smiles, model_path, train_data_path):
         desc_df = desc_df[REQUIRED_FEATURES]
         model = joblib.load(model_path)
         train_data = pd.read_csv(train_data_path)[REQUIRED_FEATURES]
-
-        pred_value = int(model.predict(desc_df.values)[0])  # Class label (0 or 1)
-        explainer = shap.TreeExplainer(model, data=train_data, model_output="probability")
+        pred_proba = model.predict_proba(desc_df.values)[0]
+        confidence_score = round(pred_proba[1], 5)
+        background_data = train_data.sample(n=30, random_state=42)
+        explainer = shap.TreeExplainer(model, data=background_data, model_output="probability")
         shap_values = explainer.shap_values(desc_df.values)
         matplotlib.use('Agg')
         importance = np.abs(shap_values).mean(axis=0)
@@ -194,7 +195,7 @@ def predict_xgboost(smiles, model_path, train_data_path):
         }
         
         mol = Chem.MolFromSmiles(smiles)
-        return (mol, pred_value, important_descriptors, "Prediction successful", encoded_top_10)
+        return (mol, confidence_score, important_descriptors, "Prediction successful", encoded_top_10)
 
     except Exception as e:
         return None, None, None, f"Prediction failed: {str(e)}", None, None
@@ -227,10 +228,11 @@ def predict_svr(smiles, model_path, train_data_path):
     else:
         return None, None, None, "Training data not provided", None, None  
                             
-    pred_value = model.predict(model_input)[0]
+    pred_value = round(model.predict(model_input)[0], 3)
     
     # SHAP explanation
-    explainer = shap.KernelExplainer(model.predict, train_data)
+    background_data = shap.kmeans(train_data, 20)
+    explainer = shap.KernelExplainer(model.predict, background_data)
     shap_values = explainer.shap_values(model_input)
     matplotlib.use('Agg')
     
@@ -340,9 +342,9 @@ def get_molecule_info(ALR_type, mol, prediction):
     inchi = Chem.MolToInchi(mol)
 
     if ALR_type == "ALR1": 
-        efficiency = "Effective" if round(prediction) == 1 else "Not Effective"
+        efficiency = "Effective" if (prediction * 100) >= 50 else "Not Effective"
     if ALR_type == "ALR2": 
-        efficiency = determine_efficiency(prediction,100)
+        efficiency = determine_efficiency(prediction, 100)
 
     info = {
         "formula": formula,

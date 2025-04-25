@@ -86,7 +86,7 @@ const DashboardPage = () => {
       shap_plot: prediction.shap_plot,
       date: prediction.date,
       model_name: prediction.model_name,
-      origin: "dashboard",
+      origin: "Dashboard",
     };
     navigate("/results", { state: mappedResult });
   };
@@ -95,6 +95,13 @@ const DashboardPage = () => {
     <div className="flex h-screen bg-white">
       <Sidebar />
       <main className="flex-1 p-6 ml-64">
+        <nav aria-label="breadcrumb" className="mb-4 text-sm font-medium text-gray-500">
+          <ol className="list-none p-0 inline-flex">
+            <li className="flex items-center">
+              <span className="text-gray-800">Dashboard</span>
+            </li>
+          </ol>
+        </nav>
         <header className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-black">Dashboard</h1>
         </header>
@@ -142,7 +149,7 @@ const DashboardPage = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CAS</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prediction</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Efficiency</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enzyme</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
@@ -155,10 +162,10 @@ const DashboardPage = () => {
                       <td className="px-6 py-4 whitespace-nowrap">{item.smiles}</td>
                       <td className="px-6 py-4 whitespace-nowrap">{item.cas || "-"}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {typeof item.prediction === "number"
-                          ? item.prediction.toFixed(4)
-                          : item.prediction}
-                      </td>
+                        {item.model_name === "ALR1"
+                            ? `${(item.prediction * 100).toFixed(3)}%`
+                            : item.prediction}
+                        </td>
                       <td
                         className="px-6 py-4 whitespace-nowrap"
                         style={{

@@ -174,16 +174,24 @@ const NewPredictionPage = ({ onResults }) => {
     <div className="flex h-screen bg-white">
       <Sidebar />
       <main className="flex-1 p-6 ml-64 overflow-auto">
+        <nav aria-label="breadcrumb" className="mb-4 text-sm font-medium text-gray-500">
+          <ol className="list-none p-0 inline-flex">
+            <li className="flex items-center">
+              <span className="text-gray-800">New prediction</span>
+            </li>
+          </ol>
+        </nav>
         <header className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-black">New prediction</h1>
         </header>
 
         <div className="bg-gray-100 rounded-lg shadow p-6 mb-6">
-          <div className="flex flex-row items-center space-x-4">
+
+          <div className="flex flex-row items-end space-x-4">
             <div className="mb-4 w-[200px]">
               <label className="block text-sm font-medium text-gray-700 mb-2">Input type</label>
               <select
-                className="w-full p-2 border border-gray-300 rounded text-black cursor-pointer"
+                className="h-11 w-full p-2 border border-gray-300 rounded text-black cursor-pointer"
                 value={inputType}
                 onChange={handleInputTypeChange}
               >
@@ -203,15 +211,17 @@ const NewPredictionPage = ({ onResults }) => {
                 }
                 onKeyDown={handleKeyDown}
                 placeholder={`Enter ${inputType} code`}
-                className="w-full p-2 border border-gray-300 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="h-11 w-full p-2 border border-gray-300 rounded text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
-            <button
-              onClick={handleAdd}
-              className="bg-blue-600 text-white px-4 py-2 rounded text-lg hover:bg-blue-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-            >
-              Add
-            </button>
+            <div className="mb-8">
+              <button
+                onClick={handleAdd}
+                className="h-11 bg-blue-600 text-white px-4 py-2 rounded text-lg hover:bg-blue-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              >
+                Add
+              </button>
+            </div>
           </div>
         </div>
 
@@ -260,7 +270,7 @@ const NewPredictionPage = ({ onResults }) => {
           <button
             onClick={handleRun}
             disabled={isRunning}
-            className={`mt-4 ${
+            className={`mt-4 cursor-pointer ${
               isRunning
                 ? "bg-gray-400 cursor-not-allowed opacity-50"
                 : "bg-green-600 hover:bg-green-700"

@@ -7,6 +7,13 @@ const InfoPage = () => {
       <Sidebar />
 
       <main className="flex-1 p-6 ml-64">
+        <nav aria-label="breadcrumb" className="mb-4 text-sm font-medium text-gray-500">
+          <ol className="list-none p-0 inline-flex">
+            <li className="flex items-center">
+              <span className="text-gray-800">Tooltip</span>
+            </li>
+          </ol>
+        </nav>
         <header className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Tooltip</h1>
         </header>

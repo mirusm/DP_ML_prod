@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import PropertyDisplay from "./PropertyDisplay";
 
@@ -19,8 +19,14 @@ const ResultPage = () => {
   const [descriptorKey, setDescriptorKey] = useState("");
   const [activeTab, setActiveTab] = useState("ALR1");
   const resultsPerPage = 5;
+  const navigate = useNavigate();
 
-  const formatNumber = (num, decimals = 4) => {
+  const handleNavigation = () => {
+    const destination = origin === "dashboard" ? "/dashboard" : "/my-predictions";
+    navigate(destination);
+  };
+
+  const formatNumber = (num, decimals = 3) => {
     if (num === null || num === undefined) return "N/A";
     const number = Number(num);
     return isNaN(number) ? "N/A" : number.toFixed(decimals);
@@ -231,6 +237,26 @@ const ResultPage = () => {
     }
   };
 
+  const getPredictionColorClass = (model, value) => {
+    const val = value || 0;
+  
+    if (model === "ALR1") {
+      if (val < 0.4) return 'bg-red-500';
+      if (val < 0.6) return 'bg-orange-500';
+      if (val < 0.8) return 'bg-yellow-500';
+      return 'bg-green-500';
+    } else {
+      if (val < 10) return 'bg-green-500';  
+      if (val < 20) return 'bg-green-400';  
+      if (val < 30) return 'bg-yellow-400';  
+      if (val < 60) return 'bg-orange-400';  
+      if (val < 70) return 'bg-orange-500';  
+      if (val < 80) return 'bg-red-400';   
+      if (val < 90) return 'bg-red-500';    
+      return 'bg-red-600';                   
+    }
+  };
+
   if (!singleResult && (!results || results.length === 0)) {
     return (
       <div className="flex h-screen bg-gray-100">
@@ -255,68 +281,104 @@ const ResultPage = () => {
   }
 
   if (selectedResult) {
+    if (!selectedResult.origin) {
+      selectedResult.origin = " "
+    }
     return (
       <div className="flex h-screen bg-gray-100">
         <Sidebar />
         <div className="flex-1 p-6 ml-64 overflow-y-auto">
+          <nav aria-label="breadcrumb" className="mb-4 text-sm font-medium text-gray-500">
+            <ol className="list-none p-0 inline-flex">
+              <li className="flex items-center">
+                <Link to={`/${selectedResult.origin.toLowerCase()}`} className="text-gray-500 hover:text-blue-600 cursor-pointer">
+                {selectedResult.origin.replace(/-/g, ' ')}
+                </Link>
+                <span className="mx-2">/</span>
+              </li>
+              <li className="flex items-center">
+                <span className="text-gray-800">Result</span>
+              </li>
+            </ol>
+          </nav>
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-blue-700">
-              Prediction result details - {selectedResult.model || selectedResult.model_name || "Unknown"}
+            <h2 className="text-2xl font-bold text-blue-600">
+              Result details - {selectedResult.model || selectedResult.model_name || "Unknown"}
             </h2>
-            {results.length > 0 && (
+            <div className="text-white">
+              {results.length > 0 && (
+                <button
+                  onClick={handleBackToList}
+                  className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800 mr-4 cursor-pointer"
+                >
+                  Back to results list
+                </button>
+              )}
               <button
-                onClick={handleBackToList}
-                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 cursor-pointer"
+                onClick={handleNavigation}
+                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 cursor-pointer"
               >
-                Back to results list
+                {origin === "dashboard" ? "Back to dashboard" : "Back to history"}
               </button>
-            )}
+              <button
+                onClick={exportResultToCSV}
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ml-4 cursor-pointer"
+              >
+                Export to CSV
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-black">
-            <div className="space-y-6">
-              <div className="bg-white p-4 rounded-lg shadow">
-                <h3 className="font-bold mb-2 text-green-600">Basic information</h3>
-                <div className="space-y-2">
-                  <p>
-                    <span className="font-semibold">SMILES:</span> {selectedResult.smiles || "N/A"}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Canonical SMILES:</span>{" "}
-                    {selectedResult.info?.canonical_smiles || "N/A"}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Formula:</span>{" "}
-                    {formatFormula(selectedResult.info?.formula || "N/A")}
-                  </p>
-                  <p>
-                    <span className="font-semibold">CAS:</span> {selectedResult.cas || "N/A"}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Prediction:</span>{" "}
-                    {formatNumber(selectedResult.predictedValue || selectedResult.prediction)}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Efficiency:</span>{" "}
-                    <span
-                      style={{
-                        color: selectedResult.efficiency === "Effective" ? "green" : "red",
-                      }}
-                    >
-                      {selectedResult.efficiency || "N/A"}
-                    </span>
-                  </p>
-                  <p>
-                    <span className="font-semibold">IUPAC name:</span>{" "}
-                    {selectedResult.info?.iupac_name || "N/A"}
-                  </p>
-                </div>
+            <div className="bg-white rounded-t-lg shadow overflow-hidden">
+            <div className="bg-blue-600 text-white p-3">
+              <h3 className="font-bold">Basic information</h3>
+            </div>
+
+            <div className="p-4 grid grid-cols-2 gap-4 items-center">
+              <div className="space-y-2">
+                <p>
+                  <span className="font-semibold">SMILES:</span> {selectedResult.smiles || "N/A"}
+                </p>
+                <p>
+                  <span className="font-semibold">Canonical SMILES:</span>{" "}
+                  {selectedResult.info?.canonical_smiles || "N/A"}
+                </p>
+                <p>
+                  <span className="font-semibold">CAS:</span> {selectedResult.cas || "N/A"}
+                </p>
+                <p>
+                  <span className="font-semibold">IUPAC name:</span>{" "}
+                  {selectedResult.info?.iupac_name || "N/A"}
+                </p>
+                <p>
+                  <span className="font-semibold">Formula:</span>{" "}
+                  {formatFormula(selectedResult.info?.formula || "N/A")}
+                </p>
               </div>
 
+              <div className="flex flex-col items-center justify-center pl-30">
+                <div
+                  className={`w-24 h-24 rounded-full flex items-center justify-center text-white font-bold text-xl mb-2
+                    ${getPredictionColorClass(selectedResult.model || selectedResult.model_name, selectedResult.predictedValue || selectedResult.prediction)}
+                  `}
+                >
+                  {(selectedResult.model === "ALR1" || selectedResult.model_name === "ALR1")
+                    ? formatNumber(((selectedResult.predictedValue || 0) * 100)) + "%"
+                    : formatNumber((selectedResult.predictedValue || selectedResult.prediction || 0))}
+                </div>
+                <p className={`font-semibold ${selectedResult.efficiency === "Effective" ? "text-green-600" : "text-red-600"}`}>
+                  {selectedResult.efficiency || "N/A"}
+                </p>
+              </div>
+            </div>
+
               {selectedResult.properties && (
-                <div className="bg-white p-4 rounded-lg shadow">
-                  <h3 className="font-bold mb-2 text-green-600">Molecular properties</h3>
-                  <div className="space-y-2">
+                <div className="bg-white rounded-t-lg shadow">
+                  <div className="bg-blue-600 text-white p-3">
+                    <h3 className="font-bold">Molecular properties</h3>
+                  </div>
+                  <div className="space-y-2 p-4">
                     <p>
                       <span className="font-semibold">Num. heavy atoms:</span>{" "}
                       {selectedResult.numHeavyAtoms || selectedResult.properties.num_heavy_atoms || "N/A"}
@@ -355,9 +417,11 @@ const ResultPage = () => {
               )}
 
               {selectedResult.descriptors && (
-                <div className="bg-white p-4 rounded-lg shadow">
-                  <h3 className="font-bold mb-2 text-green-600">Molecular descriptors</h3>
-                  <div className="space-y-2">
+                <div className="bg-white rounded-t-lg shadow">
+                  <div className="bg-blue-600 text-white p-3">
+                    <h3 className="font-bold">Molecular descriptors</h3>
+                  </div>
+                  <div className="space-y-2 p-4">
                     {Object.entries(selectedResult.descriptors).map(([key, descriptor]) => (
                       <div key={key} className="border border-blue-600 rounded p-2 relative">
                         <div className="flex items-center">
@@ -388,14 +452,16 @@ const ResultPage = () => {
               )}
             </div>
 
-            <div className="space-y-6">
+            <div>
               {selectedResult.molecule_image && (
-                <div className="bg-white p-4 rounded-lg shadow">
-                  <h3 className="font-bold mb-2 text-green-600">Molecule structure</h3>
+                <div className="bg-white rounded-t-lg shadow overflow-hidden">
+                  <div className="bg-blue-600 text-white p-3">
+                    <h3 className="font-bold">Molecular descriptors</h3>
+                  </div>
                   <img
                     src={`data:image/png;base64,${selectedResult.molecule_image}`}
                     alt="Molecule structure"
-                    className="w-full cursor-pointer"
+                    className="w-3/4 cursor-pointer mx-auto"
                     onClick={() => handleImageClick(`data:image/png;base64,${selectedResult.molecule_image}`)}
                     onError={() => console.error("Failed to load molecule image")}
                   />
@@ -403,8 +469,10 @@ const ResultPage = () => {
               )}
 
               {selectedResult.shap_plot && (
-                <div className="bg-white p-4 rounded-lg shadow">
-                  <h3 className="font-bold mb-2 text-green-600">SHAP analysis - Top features</h3>
+                <div className="bg-white rounded-t-lg shadow">
+                  <div className="bg-blue-600 text-white p-3">
+                    <h3 className="font-bold">SHAP Explainability</h3>
+                  </div>
                   <img
                     src={`data:image/png;base64,${selectedResult.shap_plot}`}
                     alt="SHAP plot - top features"
@@ -415,21 +483,6 @@ const ResultPage = () => {
                 </div>
               )}
             </div>
-          </div>
-
-          <div className="mt-6 text-white">
-            <Link
-              to={origin === "dashboard" ? "/dashboard" : "/my-predictions"}
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-            >
-              {origin === "dashboard" ? "Back to dashboard" : "Back to history"}
-            </Link>
-            <button
-              onClick={exportResultToCSV}
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ml-4 cursor-pointer"
-            >
-              Export to CSV
-            </button>
           </div>
 
           {showImagePopup && popupImageSrc && (
@@ -465,6 +518,13 @@ const ResultPage = () => {
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
       <div className="flex-1 p-6 ml-64 overflow-y-auto">
+      <nav aria-label="breadcrumb" className="mb-4 text-sm font-medium text-gray-500">
+          <ol className="list-none p-0 inline-flex">
+            <li className="flex items-center">
+              <span className="text-gray-800">Results</span>
+            </li>
+          </ol>
+        </nav>
         <h2 className="text-2xl font-bold mb-6 text-blue-700">Prediction results</h2>
 
         <div className="mb-6">
@@ -531,9 +591,9 @@ const ResultPage = () => {
                       <td className="p-2">
                         <button
                           onClick={() => handleViewDetails(result)}
-                          className="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700"
+                          className="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 cursor-pointer"
                         >
-                          View details
+                          View
                         </button>
                       </td>
                     </tr>
@@ -574,14 +634,8 @@ const ResultPage = () => {
 
         <div className="mt-6 text-white">
           <Link
-            to="/new-prediction"
-            className="bg-blue-500 text-white px-4 py-3 rounded hover:bg-blue-600"
-          >
-            Back to new prediction
-          </Link>
-          <Link
             to={origin === "dashboard" ? "/dashboard" : "/my-predictions"}
-            className="bg-gray-500 text-white px-4 py-3 rounded hover:bg-gray-600 ml-4"
+            className="bg-blue-500 text-white px-4 py-3 rounded hover:bg-blue-600"
           >
             {origin === "dashboard" ? "Back to dashboard" : "Back to history"}
           </Link>

@@ -100,7 +100,7 @@ const HistoryPage = () => {
           (item.cas && item.cas.toLowerCase().includes(lowerCaseFilter)) ||
           (item.prediction &&
             (typeof item.prediction === "number"
-              ? item.prediction.toFixed(4)
+              ? item.prediction.toFixed(3)
               : item.prediction.toString()
             ).toLowerCase().includes(lowerCaseFilter)) ||
           (item.efficiency && item.efficiency.toLowerCase().includes(lowerCaseFilter))
@@ -116,7 +116,7 @@ const HistoryPage = () => {
           return dateStr.startsWith(lowerCaseFilter);
         }
         if (filterColumn === "prediction") {
-          return (typeof value === "number" ? value.toFixed(4) : value.toString())
+          return (typeof value === "number" ? value.toFixed(3) : value.toString())
             .toLowerCase()
             .includes(lowerCaseFilter);
         }
@@ -185,7 +185,7 @@ const HistoryPage = () => {
       shap_plot: prediction.shap_plot,
       date: prediction.date,
       model_name: prediction.model_name,
-      origin: "history",
+      origin: "My-predictions",
     };
     navigate("/results", { state: mappedResult });
   };
@@ -417,6 +417,13 @@ const HistoryPage = () => {
     <div className="flex min-h-screen bg-gray-100">
       <Sidebar />
       <main className="flex-1 p-6 ml-64">
+      <nav aria-label="breadcrumb" className="mb-4 text-sm font-medium text-gray-500">
+          <ol className="list-none p-0 inline-flex">
+            <li className="flex items-center">
+              <span className="text-gray-800">My predictions</span>
+            </li>
+          </ol>
+        </nav>
         <div className="bg-white rounded-lg shadow p-6">
           <h1 className="text-2xl font-bold mb-6 text-black">
             Prediction history
@@ -456,7 +463,7 @@ const HistoryPage = () => {
                 <option value="cas">CAS</option>
                 <option value="prediction">Prediction</option>
                 <option value="efficiency">Efficiency</option>
-                <option value="model_name">Type</option>
+                <option value="model_name">Enzyme</option>
               </select>
             </div>
 
@@ -511,7 +518,7 @@ const HistoryPage = () => {
                         Efficiency
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Model type
+                        Enzyme
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
@@ -531,8 +538,8 @@ const HistoryPage = () => {
                         <td className="px-6 py-4 whitespace-nowrap">{item.smiles}</td>
                         <td className="px-6 py-4 whitespace-nowrap">{item.cas || "-"}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {typeof item.prediction === "number"
-                            ? item.prediction.toFixed(4)
+                          {item.model_name === "ALR1"
+                            ? `${(item.prediction * 100).toFixed(3)}%`
                             : item.prediction}
                         </td>
                         <td
