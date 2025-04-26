@@ -441,9 +441,16 @@ const ResultPage = () => {
                           <p>Importance: {formatNumber(descriptor.importance)}</p>
                         </div>
                         {!isClickedPopup && showDescriptorPopup && descriptorKey === key && descriptorInfo && (
-                          <div className="absolute z-10 bg-white p-4 rounded-lg shadow-md max-w-md w-96 text-gray-800 border border-gray-200 -top-2 left-full ml-2">
-                            <p className="whitespace-pre-wrap break-words">{descriptorInfo}</p>
-                          </div>
+                          <div
+                           className="absolute z-20 bg-white p-4 rounded-lg shadow-md max-w-xs w-64 text-gray-800 border border-gray-200"
+                           style={{
+                             top: '0', 
+                             left: '60%', 
+                             marginLeft: '0.5rem', 
+                           }}
+                          >
+                           <p className="whitespace-pre-wrap break-words">{descriptorInfo}</p>
+                         </div>
                         )}
                       </div>
                     ))}

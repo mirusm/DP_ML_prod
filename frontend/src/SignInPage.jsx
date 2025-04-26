@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from './firebase/firebase';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
@@ -11,6 +11,8 @@ const SignInPage = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const { currentUser, loading: authLoading } = useAuth();
+
+  const googleProvider = new GoogleAuthProvider();
 
   useEffect(() => {
     if (!authLoading && currentUser) {
@@ -36,6 +38,25 @@ const SignInPage = () => {
         errorMessage = "Invalid email or password.";
       } else if (err.code === 'auth/user-disabled') {
         errorMessage = "This account has been disabled.";
+      } else if (err.code === 'auth/too-many-requests') {
+        errorMessage = "Too many attempts. Please try again later.";
+      }
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      await signInWithPopup(auth, googleProvider);
+      navigate('/dashboard', { replace: true });
+    } catch (err) {
+      let errorMessage = "Failed to sign in with Google. Please try again.";
+      if (err.code === 'auth/popup-closed-by-user') {
+        errorMessage = "Google sign-in was canceled.";
       } else if (err.code === 'auth/too-many-requests') {
         errorMessage = "Too many attempts. Please try again later.";
       }
@@ -90,6 +111,20 @@ const SignInPage = () => {
               {loading ? "Signing in..." : "Sign in"}
             </button>
           </form>
+          <div className="mt-4">
+            <button
+              onClick={handleGoogleSignIn}
+              disabled={loading}
+              className="w-full p-4 bg-white text-gray-800 border border-gray-300 rounded text-lg hover:bg-gray-100 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-200 cursor-pointer flex items-center justify-center"
+            >
+              <img
+                src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                alt="Google logo"
+                className="w-6 h-6 mr-2"
+              />
+              {loading ? "Signing in..." : "Sign in with Google"}
+            </button>
+          </div>
           {error && (
             <p className="text-red-500 text-sm mt-4 text-center">
               {error}
