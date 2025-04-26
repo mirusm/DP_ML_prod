@@ -38,6 +38,18 @@ const HistoryPage = () => {
   const rowsPerPage = 9;
   const navigate = useNavigate();
   const { currentUser, authLoading } = useAuth();
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem('theme') === 'dark';
+  });
+
+  useEffect(() => {
+    const handleThemeChange = (e) => {
+      setIsDarkMode(e.detail.isDark);
+    };
+
+    window.addEventListener('themeChanged', handleThemeChange);
+    return () => window.removeEventListener('themeChanged', handleThemeChange);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -198,7 +210,7 @@ const HistoryPage = () => {
     return `${day}.${month}.${year}`;
   };
   
-  const getHistogramData = () => {
+  const getHistogramData = (isDarkMode) => {
     const alr1Values = filteredPredictions
       .filter((item) => item.model_name === "ALR1")
       .map((item) => {
@@ -206,7 +218,7 @@ const HistoryPage = () => {
         return isNaN(value) ? NaN : value;
       })
       .filter((val) => !isNaN(val));
-
+  
     const alr2Values = filteredPredictions
       .filter((item) => item.model_name === "ALR2")
       .map((item) => {
@@ -214,9 +226,15 @@ const HistoryPage = () => {
         return isNaN(value) ? NaN : value;
       })
       .filter((val) => !isNaN(val));
-
+  
     const allValues = [...alr1Values, ...alr2Values];
-
+  
+    const alr1Color = isDarkMode ? "rgba(255, 255, 255, 0.8)" : "rgb(1, 217, 255)";
+    const alr1Border = isDarkMode ? "rgb(100, 64, 64)" : "rgb(1, 217, 255)";
+    const alr2Color = isDarkMode ? "rgba(0, 0, 0, 0.8)" : "rgba(3, 0, 185, 0.8)";
+    const alr2Border = isDarkMode ? "rgb(0, 0, 0)" : "rgba(3, 0, 185, 0.8)";
+    const textColor = isDarkMode ? "#FFFFFF" : "#374151";
+  
     if (allValues.length === 0) {
       return {
         labels: ["No data"],
@@ -224,58 +242,106 @@ const HistoryPage = () => {
           {
             label: "ALR1",
             data: [0],
-            backgroundColor: "rgba(54, 162, 235, 0.6)",
-            borderColor: "rgba(54, 162, 235, 1)",
+            backgroundColor: alr1Color,
+            borderColor: alr1Border,
             borderWidth: 1,
           },
           {
             label: "ALR2",
             data: [0],
-            backgroundColor: "rgba(255, 99, 132, 0.6)",
-            borderColor: "rgba(255, 99, 132, 1)",
+            backgroundColor: alr2Color,
+            borderColor: alr2Border,
             borderWidth: 1,
           },
         ],
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              labels: {
+                color: textColor,
+              },
+            },
+          },
+          scales: {
+            x: {
+              ticks: {
+                color: textColor,
+              },
+            },
+            y: {
+              ticks: {
+                color: textColor,
+              },
+            },
+          },
+        },
       };
     }
-
-    const min = Math.min(...allValues);
-    const max = Math.max(...allValues) + 1;
-    const step = (max - min) / 10 || 1;
-    const labels = Array.from({ length: 10 }, (_, i) =>
-      `${(min + i * step).toFixed(2)} - ${(min + (i + 1) * step).toFixed(2)}`
-    );
-
-    const alr1Data = Array.from({ length: 10 }, (_, i) =>
-      alr1Values.filter(
-        (val) => val >= min + i * step && val < min + (i + 1) * step
-      ).length
-    );
-
-    const alr2Data = Array.from({ length: 10 }, (_, i) =>
-      alr2Values.filter(
-        (val) => val >= min + i * step && val < min + (i + 1) * step
-      ).length
-    );
-
+  
+    const minValue = Math.min(...allValues);
+    const maxValue = Math.max(...allValues);
+    const binSize = (maxValue - minValue) / 10;
+  
+    const bins = Array.from({ length: 10 }, (_, i) => {
+      const start = minValue + i * binSize;
+      const end = start + binSize;
+      return `${start.toFixed(2)}-${end.toFixed(2)}`;
+    });
+  
+    const alr1Counts = Array(10).fill(0);
+    const alr2Counts = Array(10).fill(0);
+  
+    alr1Values.forEach(value => {
+      const binIndex = Math.min(Math.floor((value - minValue) / binSize), 9);
+      alr1Counts[binIndex]++;
+    });
+  
+    alr2Values.forEach(value => {
+      const binIndex = Math.min(Math.floor((value - minValue) / binSize), 9);
+      alr2Counts[binIndex]++;
+    });
+  
     return {
-      labels,
+      labels: bins,
       datasets: [
         {
           label: "ALR1",
-          data: alr1Data,
-          backgroundColor: "rgba(54, 162, 235, 0.6)",
-          borderColor: "rgba(54, 162, 235, 1)",
+          data: alr1Counts,
+          backgroundColor: alr1Color,
+          borderColor: alr1Border,
           borderWidth: 1,
         },
         {
           label: "ALR2",
-          data: alr2Data,
-          backgroundColor: "rgba(255, 99, 132, 0.6)",
-          borderColor: "rgba(255, 99, 132, 1)",
+          data: alr2Counts,
+          backgroundColor: alr2Color,
+          borderColor: alr2Border,
           borderWidth: 1,
         },
       ],
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            labels: {
+              color: textColor,
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: {
+              color: textColor,
+            },
+          },
+          y: {
+            ticks: {
+              color: textColor,
+            },
+          },
+        },
+      },
     };
   };
 
@@ -300,8 +366,8 @@ const HistoryPage = () => {
           {
             label: "Predictions",
             data: [0],
-            backgroundColor: "rgb(75, 192, 192)",
-            borderColor: "rgb(75, 192, 192)",
+            backgroundColor: "rgb(14, 56, 240)",
+            borderColor: "rgb(14, 56, 240)",
             borderWidth: 1,
           },
         ],
@@ -314,8 +380,8 @@ const HistoryPage = () => {
         {
           label: "Predictions",
           data: counts,
-          backgroundColor: "rgb(75, 192, 192)",
-          borderColor: "rgb(75, 192, 192)",
+          backgroundColor: "rgb(14, 56, 240)",
+          borderColor: "rgb(14, 56, 240)",
           borderWidth: 1,
         },
       ],
@@ -366,11 +432,11 @@ const HistoryPage = () => {
 
   if (loading)
     return (
-      <div className="flex min-h-screen bg-gray-100">
+      <div className={`flex min-h-screen`}>
         <Sidebar />
-        <main className="flex-1 p-6 ml-64">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h1 className="text-2xl font-bold text-black mb-6">Prediction history</h1>
+        <main className={`flex-1 p-6 ml-64 ${isDarkMode ? "bg-gray-900 text-gray-300" : "bg-white"}`}>
+          <div className="rounded-lg shadow p-6">
+            <h1 className="text-2xl font-bold mb-6">Prediction history</h1>
             <div className="text-center py-4">
               <div className="relative inline-block" style={{ minWidth: "100px", minHeight: "50px" }}>
                 <span
@@ -414,27 +480,27 @@ const HistoryPage = () => {
   const totalPages = Math.ceil(filteredPredictions.length / rowsPerPage);
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className={`flex min-h-screen ${isDarkMode ? "bg-gray-900 text-gray-300" : "bg-white"}`}>
       <Sidebar />
       <main className="flex-1 p-6 ml-64">
-      <nav aria-label="breadcrumb" className="mb-4 text-sm font-medium text-gray-500">
+      <nav aria-label="breadcrumb" className="mb-4 text-sm font-medium">
           <ol className="list-none p-0 inline-flex">
             <li className="flex items-center">
-              <span className="text-gray-800">My predictions</span>
+              <span>My predictions</span>
             </li>
           </ol>
         </nav>
-        <div className="bg-white rounded-lg shadow p-6">
-          <h1 className="text-2xl font-bold mb-6 text-black">
+        <div className={`rounded-lg shadow p-6 ${isDarkMode ? "bg-gray-800 text-gray-300" : "bg-white"}`}>
+          <h1 className="text-2xl font-bold mb-6">
             Prediction history
-            <span className="text-sm text-gray-500 ml-2">
+            <span className="text-sm ml-2">
               ({filteredPredictions.length} predictions)
             </span>
           </h1>
 
           <div className="mb-6 flex items-start space-x-4">
             <div className="flex-1">
-              <label htmlFor="filter" className="text-sm font-medium text-gray-700 mb-1 block">
+              <label htmlFor="filter" className="text-sm font-medium mb-1 block">
                 Filter:
               </label>
               <input
@@ -443,19 +509,19 @@ const HistoryPage = () => {
                 value={filterText}
                 onChange={handleFilterChange}
                 placeholder="Search predictions..."
-                className="w-full px-3 h-11 border rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 h-11 border rounded-mdfocus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             <div>
-              <label htmlFor="column" className="text-sm font-medium text-gray-700 mb-1 block">
+              <label htmlFor="column" className="text-sm font-medium mb-1 block">
                 Column:
               </label>
               <select
                 id="column"
                 value={filterColumn}
                 onChange={handleColumnChange}
-                className="h-11 px-3 border rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                className="h-11 px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
               >
                 <option value="all">All columns</option>
                 <option value="date">Date</option>
@@ -473,59 +539,59 @@ const HistoryPage = () => {
               </label>
               <button
                 onClick={handleClearFilter}
-                className="h-11 bg-blue-500 text-white px-4 rounded hover:bg-blue-600 cursor-pointer"
+                className={`h-11 text-white px-4 rounded hover:bg-blue-600 cursor-pointer ${isDarkMode ? "bg-indigo-500" : "bg-blue-600"}`}
               >
                 Clear filter
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            <div className="bg-gray-50 p-4 rounded-lg shadow">
+          <div className={`grid grid-cols-2 gap-6 mb-6 ${isDarkMode ? "bg-gray-700" : "bg-gray-100"}`}>
+            <div className="p-4 rounded-lg shadow">
               <Bar data={getHistogramData()} options={histogramOptions} />
             </div>
-            <div className="bg-gray-50 p-4 rounded-lg shadow">
+            <div className="p-4 rounded-lg shadow">
               <Bar data={getTrendData()} options={trendOptions} />
             </div>
           </div>
 
           {!filteredPredictions || filteredPredictions.length === 0 ? (
             <div className="text-center py-4">
-              <p className="text-gray-500">No predictions found.</p>
-              <p className="text-sm text-gray-400 mt-2">
+              <p>No predictions found.</p>
+              <p className="text-sm mt-2">
                 {filterText ? "Try adjusting your filter." : "Make some predictions first!"}
               </p>
             </div>
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="min-w-full">
+                <table className={`min-w-full ${isDarkMode ? "bg-gray-800 text-gray-200" : "bg-white"}`}>
                   <thead>
-                    <tr className="bg-gray-50">
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <tr className={`${isDarkMode ? "bg-gray-400" : "bg-gray-100"}`}>
+                      <th className="px-6 py-3 text-left text-xs font-mediu uppercase tracking-wider">
                         Date
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                         SMILES
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                         CAS
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                         Prediction
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                         Efficiency
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                         Enzyme
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200 text-black">
+                  <tbody className={`divide-y divide-gray-200 ${isDarkMode ? "bg-gray-800 text-gray-200" : "bg-white"}`}>
                     {currentItems.map((item, index) => (
                       <tr key={item.id || index}>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -559,7 +625,7 @@ const HistoryPage = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button
                             onClick={() => handleViewResult(item)}
-                            className="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 cursor-pointer"
+                            className={`text-white px-3 py-2 rounded hover:bg-blue-600 cursor-pointer ${isDarkMode ? "bg-indigo-500" : "bg-blue-600"}`}
                           >
                             View
                           </button>

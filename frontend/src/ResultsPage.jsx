@@ -20,6 +20,18 @@ const ResultPage = () => {
   const [activeTab, setActiveTab] = useState("ALR1");
   const resultsPerPage = 5;
   const navigate = useNavigate();
+    const [isDarkMode, setIsDarkMode] = useState(() => {
+      return localStorage.getItem('theme') === 'dark';
+    });
+  
+    useEffect(() => {
+      const handleThemeChange = (e) => {
+        setIsDarkMode(e.detail.isDark);
+      };
+  
+      window.addEventListener('themeChanged', handleThemeChange);
+      return () => window.removeEventListener('themeChanged', handleThemeChange);
+    }, []);
 
   const handleNavigation = () => {
     const destination = origin === "dashboard" ? "/dashboard" : "/my-predictions";
@@ -285,24 +297,24 @@ const ResultPage = () => {
       selectedResult.origin = " "
     }
     return (
-      <div className="flex h-screen bg-gray-100">
+      <div className={`flex h-screen ${isDarkMode ? "bg-gray-900 text-gray-300" : "bg-white"}`}>
         <Sidebar />
         <div className="flex-1 p-6 ml-64 overflow-y-auto">
-          <nav aria-label="breadcrumb" className="mb-4 text-sm font-medium text-gray-500">
+          <nav aria-label="breadcrumb" className="mb-4 text-sm font-medium">
             <ol className="list-none p-0 inline-flex">
               <li className="flex items-center">
-                <Link to={`/${selectedResult.origin.toLowerCase()}`} className="text-gray-500 hover:text-blue-600 cursor-pointer">
+                <Link to={`/${selectedResult.origin.toLowerCase()}`} className="hover:text-blue-600 cursor-pointer">
                 {selectedResult.origin.replace(/-/g, ' ')}
                 </Link>
                 <span className="mx-2">/</span>
               </li>
               <li className="flex items-center">
-                <span className="text-gray-800">Result</span>
+                <span>Result</span>
               </li>
             </ol>
           </nav>
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-blue-600">
+            <h2 className={`text-2xl font-bold ${isDarkMode ? "text-gray-300" : "text-blue-600"}`}>
               Result details - {selectedResult.model || selectedResult.model_name || "Unknown"}
             </h2>
             <div className="text-white">
@@ -329,9 +341,9 @@ const ResultPage = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-black">
+          <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${isDarkMode ? "text-gray-700" : "text-black"}`}>
             <div className="bg-white rounded-t-lg shadow overflow-hidden">
-            <div className="bg-blue-600 text-white p-3">
+            <div className={`text-white p-3 ${isDarkMode ? "bg-gray-800" : "bg-blue-600"}`}>
               <h3 className="font-bold">Basic information</h3>
             </div>
 
@@ -375,7 +387,7 @@ const ResultPage = () => {
 
               {selectedResult.properties && (
                 <div className="bg-white rounded-t-lg shadow">
-                  <div className="bg-blue-600 text-white p-3">
+                  <div className={`text-white p-3 ${isDarkMode ? "bg-gray-800" : "bg-blue-600"}`}>
                     <h3 className="font-bold">Molecular properties</h3>
                   </div>
                   <div className="space-y-2 p-4">
@@ -418,7 +430,7 @@ const ResultPage = () => {
 
               {selectedResult.descriptors && (
                 <div className="bg-white rounded-t-lg shadow">
-                  <div className="bg-blue-600 text-white p-3">
+                  <div className={`text-white p-3 ${isDarkMode ? "bg-gray-800" : "bg-blue-600"}`}>
                     <h3 className="font-bold">Molecular descriptors</h3>
                   </div>
                   <div className="space-y-2 p-4">
@@ -462,8 +474,8 @@ const ResultPage = () => {
             <div>
               {selectedResult.molecule_image && (
                 <div className="bg-white rounded-t-lg shadow overflow-hidden">
-                  <div className="bg-blue-600 text-white p-3">
-                    <h3 className="font-bold">Molecular descriptors</h3>
+                  <div className={`text-white p-3 ${isDarkMode ? "bg-gray-800" : "bg-blue-600"}`}>
+                    <h3 className="font-bold">Molecular structure</h3>
                   </div>
                   <img
                     src={`data:image/png;base64,${selectedResult.molecule_image}`}
@@ -477,7 +489,7 @@ const ResultPage = () => {
 
               {selectedResult.shap_plot && (
                 <div className="bg-white rounded-t-lg shadow">
-                  <div className="bg-blue-600 text-white p-3">
+                  <div className={`text-white p-3 ${isDarkMode ? "bg-gray-800" : "bg-blue-600"}`}>
                     <h3 className="font-bold">SHAP Explainability</h3>
                   </div>
                   <img
@@ -522,17 +534,17 @@ const ResultPage = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className={`flex h-screen`}>
       <Sidebar />
-      <div className="flex-1 p-6 ml-64 overflow-y-auto">
-      <nav aria-label="breadcrumb" className="mb-4 text-sm font-medium text-gray-500">
+      <div className={`flex-1 p-6 ml-64 overflow-y-auto ${isDarkMode ? "bg-gray-900 text-gray-300" : "bg-white"}`}>
+      <nav aria-label="breadcrumb" className="mb-4 text-sm font-medium">
           <ol className="list-none p-0 inline-flex">
             <li className="flex items-center">
-              <span className="text-gray-800">Results</span>
+              <span>Results</span>
             </li>
           </ol>
         </nav>
-        <h2 className="text-2xl font-bold mb-6 text-blue-700">Prediction results</h2>
+        <h2 className="text-2xl font-bold mb-6">Prediction results</h2>
 
         <div className="mb-6">
           <button
@@ -555,9 +567,9 @@ const ResultPage = () => {
           </button>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className={`rounded-lg shadow p-6 ${isDarkMode ? "bg-gray-800 text-gray-300" : "bg-white"}`}>
           {paginatedResults.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">
+            <p className="text-center py-4">
               No results available for {activeTab}. Try running a new prediction{" "}
               <Link to="/new-prediction" className="text-blue-600 hover:underline">
                 here
@@ -568,31 +580,31 @@ const ResultPage = () => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr>
-                    <th className="p-2 text-gray-600">Date</th>
-                    <th className="p-2 text-gray-600">SMILES</th>
-                    <th className="p-2 text-gray-600">CAS</th>
-                    <th className="p-2 text-gray-600">Predicted value</th>
-                    <th className="p-2 text-gray-600">Efficiency</th>
-                    <th className="p-2 text-gray-600">Num. heavy atoms</th>
-                    <th className="p-2 text-gray-600">Actions</th>
+                    <th className="p-2">Date</th>
+                    <th className="p-2">SMILES</th>
+                    <th className="p-2">CAS</th>
+                    <th className="p-2">Predicted value</th>
+                    <th className="p-2">Efficiency</th>
+                    <th className="p-2">Num. heavy atoms</th>
+                    <th className="p-2">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedResults.map((result, index) => (
                     <tr key={index}>
-                      <td className="p-2 text-gray-800">{formatDate(result.date)}</td>
-                      <td className="p-2 text-gray-800">{result.smiles || "N/A"}</td>
-                      <td className="p-2 text-gray-800">{result.cas || "-"}</td>
-                      <td className="p-2 text-gray-800">{formatNumber(result.predictedValue)}</td>
+                      <td className="p-2">{formatDate(result.date)}</td>
+                      <td className="p-2">{result.smiles || "N/A"}</td>
+                      <td className="p-2">{result.cas || "-"}</td>
+                      <td className="p-2">{formatNumber(result.predictedValue)}</td>
                       <td
-                        className="p-2 text-gray-800"
+                        className="p-2"
                         style={{
                           color: result.efficiency === "Effective" ? "green" : "red",
                         }}
                       >
                         {result.efficiency || "N/A"}
                       </td>
-                      <td className="p-2 text-gray-800">
+                      <td className="p-2">
                         {result.numHeavyAtoms || result.properties?.num_heavy_atoms || "N/A"}
                       </td>
                       <td className="p-2">

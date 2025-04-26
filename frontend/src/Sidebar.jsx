@@ -3,26 +3,24 @@ import { Link, useNavigate } from "react-router-dom";
 import { signOut } from 'firebase/auth';
 import { auth } from './firebase/firebase';
 import { Info, ChartScatter, Monitor, Microscope, LogOut, Moon } from "lucide-react";
+import { toggleDarkMode, initializeTheme } from './utils/theme';
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const currentUser = auth.currentUser;
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    return localStorage.getItem('theme') === 'dark';
-  });
+  const [isDarkMode, setIsDarkMode] = useState(initializeTheme());
 
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [isDarkMode]);
+    const handleThemeChange = (e) => {
+      setIsDarkMode(e.detail.isDark);
+    };
 
-  const toggleDarkMode = () => {
-    setIsDarkMode((prev) => !prev);
+    window.addEventListener('themeChanged', handleThemeChange);
+    return () => window.removeEventListener('themeChanged', handleThemeChange);
+  }, []);
+
+  const handleToggleDarkMode = () => {
+    toggleDarkMode(!isDarkMode);
   };
 
   const handleLogout = async () => {
@@ -117,7 +115,7 @@ const Sidebar = () => {
                 type="checkbox"
                 className="sr-only"
                 checked={isDarkMode}
-                onChange={toggleDarkMode}
+                onChange={handleToggleDarkMode}
               />
               <div
                 className={`block w-10 h-6 rounded-full transition-colors ${

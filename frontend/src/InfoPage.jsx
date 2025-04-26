@@ -1,15 +1,28 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 
 const InfoPage = () => {
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem('theme') === 'dark';
+  });
+
+  useEffect(() => {
+    const handleThemeChange = (e) => {
+      setIsDarkMode(e.detail.isDark);
+    };
+
+    window.addEventListener('themeChanged', handleThemeChange);
+    return () => window.removeEventListener('themeChanged', handleThemeChange);
+  }, []);
+
   return (
-    <div className="flex h-screen bg-white dark:bg-gray-900">
+    <div className="flex h-screen">
       <Sidebar />
-      <main className="main-content flex-1 p-6 ml-64">
+      <main className={`main-content flex-1 p-6 ml-64 ${isDarkMode ? "bg-gray-900 text-gray-300" : "bg-white"}`}>
         <nav aria-label="breadcrumb" className="mb-4 text-sm font-medium text-gray-600 dark:text-gray-400">
           <ol className="list-none p-0 inline-flex">
             <li className="flex items-center">
-              <span className="text-gray-800 dark:text-gray-200">Tooltip</span>
+              <span className={`${isDarkMode ? "text-gray-200" : "text-gray-800"}`}>Tooltip</span>
             </li>
           </ol>
         </nav>
@@ -17,11 +30,11 @@ const InfoPage = () => {
           <h1 className="text-2xl font-bold dark:text-gray-200">Tooltip</h1>
         </header>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-200">
+        <div className={`rounded-lg shadow p-6 ${isDarkMode ? "bg-gray-800 text-gray-300" : "bg-white"}`}>
+          <h2 className="text-2xl font-bold mb-4 dark:text-gray-200">
             Our project: ML-powered QSAR web tool for predicting ALR1/ALR2 inhibitor efficacy
           </h2>
-          <div className="text-gray-700 dark:text-gray-300 text-lg space-y-4">
+          <div className="text-lg space-y-4">
             <p>
               Modern lifestyle, including lack of physical activity, stress, and exposure to harmful substances, significantly contributes to the increasing prevalence of diabetes. This serious disease affects more than 422 million people worldwide, with advanced-stage diabetes leading to severe complications such as kidney failure, nerve damage, and cardiovascular diseases. The development of new drugs represents a complex, financially demanding, and time-consuming process that requires extensive testing of active compounds.
             </p>
