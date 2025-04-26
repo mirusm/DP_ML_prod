@@ -13,11 +13,25 @@ const DashboardPage = () => {
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return document.documentElement.classList.contains("dark");
+  });
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDarkMode(document.documentElement.classList.contains("dark"));
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, []);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "N/A";
     try {
-      const date = dateStr.toDate ? dateStr.toDate() : new Date(dateStr); 
+      const date = dateStr.toDate ? dateStr.toDate() : new Date(dateStr);
       return date.toLocaleDateString("de-DE", {
         day: "2-digit",
         month: "2-digit",
@@ -92,22 +106,22 @@ const DashboardPage = () => {
   };
 
   return (
-    <div className="flex h-screen bg-white">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       <Sidebar />
-      <main className="flex-1 p-6 ml-64">
-        <nav aria-label="breadcrumb" className="mb-4 text-sm font-medium text-gray-500">
+      <main className="main-content flex-1 p-6 ml-64">
+        <nav aria-label="breadcrumb" className="mb-4 text-sm font-medium text-gray-600 dark:text-gray-400">
           <ol className="list-none p-0 inline-flex">
             <li className="flex items-center">
-              <span className="text-gray-800">Dashboard</span>
+              <span className="text-gray-700 dark:text-gray-200">Dashboard</span>
             </li>
           </ol>
         </nav>
         <header className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-black">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-200">Dashboard</h1>
         </header>
 
-        <div className="bg-white rounded-lg shadow p-4">
-          <h2 className="text-xl font-bold mb-4 text-gray-800">Last 8 predictions</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-200">Last 8 predictions</h2>
           {loading ? (
             <div className="text-center py-4">
               <div className="relative inline-block" style={{ minWidth: "150px", minHeight: "50px" }}>
@@ -131,41 +145,41 @@ const DashboardPage = () => {
                   🧀
                 </span>
               </div>
-              <p className="mt-2 text-gray-500">Trying to fetch predictions...</p>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">Trying to fetch predictions...</p>
             </div>
           ) : error ? (
-            <p className="text-red-500 text-center py-4">{error}</p>
+            <p className="text-red-500 dark:text-red-400 text-center py-4">{error}</p>
           ) : predictions.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">
-              No predictions available. Create one <Link to="/new-prediction" className="text-blue-600 hover:underline">here</Link>.
+            <p className="text-gray-600 dark:text-gray-400 text-center py-4">
+              No predictions available. Create one <Link to="/new-prediction" className="text-blue-500 dark:text-blue-400 hover:underline">here</Link>.
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full bg-white">
+              <table className="min-w-full bg-white dark:bg-gray-800">
                 <thead>
-                  <tr className="bg-gray-100">
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SMILES</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CAS</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prediction</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Efficiency</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enzyme</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <tr className="bg-gray-200 dark:bg-gray-700">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider">Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider">SMILES</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider">CAS</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider">Prediction</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider">Efficiency</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider">Enzyme</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-300 dark:divide-gray-600">
                   {predictions.map((item, index) => (
                     <tr key={item.id || index}>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-gray-200">
                         {formatDate(item.date)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">{item.smiles}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{item.cas || "-"}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-gray-200">{item.smiles}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-gray-200">{item.cas || "-"}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-gray-200">
                         {item.model_name === "ALR1"
-                            ? `${(item.prediction * 100).toFixed(3)}%`
-                            : item.prediction}
-                        </td>
+                          ? `${(item.prediction * 100).toFixed(3)}%`
+                          : item.prediction}
+                      </td>
                       <td
                         className="px-6 py-4 whitespace-nowrap"
                         style={{
@@ -174,16 +188,16 @@ const DashboardPage = () => {
                               ? "green"
                               : item.efficiency === "Not Effective"
                               ? "red"
-                              : "black",
+                              : isDarkMode ? "#e5e7eb" : "#111827",
                         }}
                       >
                         {item.efficiency || "-"}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">{item.model_name || "-"}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-gray-200">{item.model_name || "-"}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
                           onClick={() => handleViewResult(item)}
-                          className="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 cursor-pointer"
+                          className="bg-blue-500 dark:bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-600 dark:hover:bg-blue-700 cursor-pointer"
                         >
                           View
                         </button>
@@ -196,7 +210,7 @@ const DashboardPage = () => {
           )}
         </div>
       </main>
-      <ToastContainer closeButton={false} />
+      <ToastContainer closeButton={false} theme={isDarkMode ? "dark" : "light"} />
     </div>
   );
 };

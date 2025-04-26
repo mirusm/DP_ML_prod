@@ -1,28 +1,27 @@
-import React, { useState } from "react";
+import React from "react";
 import Sidebar from "./Sidebar";
 
 const InfoPage = () => {
   return (
-    <div className="flex h-screen bg-white">
+    <div className="flex h-screen bg-white dark:bg-gray-900">
       <Sidebar />
-
-      <main className="flex-1 p-6 ml-64">
-        <nav aria-label="breadcrumb" className="mb-4 text-sm font-medium text-gray-500">
+      <main className="main-content flex-1 p-6 ml-64">
+        <nav aria-label="breadcrumb" className="mb-4 text-sm font-medium text-gray-600 dark:text-gray-400">
           <ol className="list-none p-0 inline-flex">
             <li className="flex items-center">
-              <span className="text-gray-800">Tooltip</span>
+              <span className="text-gray-800 dark:text-gray-200">Tooltip</span>
             </li>
           </ol>
         </nav>
         <header className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Tooltip</h1>
+          <h1 className="text-2xl font-bold dark:text-gray-200">Tooltip</h1>
         </header>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-2xl font-bold mb-4 text-gray-800">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-200">
             Our project: ML-powered QSAR web tool for predicting ALR1/ALR2 inhibitor efficacy
           </h2>
-          <div className="text-gray-700 text-lg space-y-4">
+          <div className="text-gray-700 dark:text-gray-300 text-lg space-y-4">
             <p>
               Modern lifestyle, including lack of physical activity, stress, and exposure to harmful substances, significantly contributes to the increasing prevalence of diabetes. This serious disease affects more than 422 million people worldwide, with advanced-stage diabetes leading to severe complications such as kidney failure, nerve damage, and cardiovascular diseases. The development of new drugs represents a complex, financially demanding, and time-consuming process that requires extensive testing of active compounds.
             </p>
