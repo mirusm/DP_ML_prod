@@ -546,11 +546,11 @@ const HistoryPage = () => {
             </div>
           </div>
 
-          <div className={`grid grid-cols-2 gap-6 mb-6 ${isDarkMode ? "bg-gray-700" : "bg-gray-100"}`}>
-            <div className="p-4 rounded-lg shadow">
+          <div className="grid grid-cols-2 gap-6 mb-6">
+            <div className={`p-4 rounded-lg shadow ${isDarkMode ? "bg-gray-700" : "bg-gray-50"}`}>
               <Bar data={getHistogramData()} options={histogramOptions} />
             </div>
-            <div className="p-4 rounded-lg shadow">
+            <div className={`p-4 rounded-lg shadow ${isDarkMode ? "bg-gray-700" : "bg-gray-50"}`}>
               <Bar data={getTrendData()} options={trendOptions} />
             </div>
           </div>
