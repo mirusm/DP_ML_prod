@@ -115,7 +115,7 @@ const HistoryPage = () => {
               ? item.prediction.toFixed(3)
               : item.prediction.toString()
             ).toLowerCase().includes(lowerCaseFilter)) ||
-          (item.efficiency && item.efficiency.toLowerCase().includes(lowerCaseFilter))
+          (item.efficiency && item.efficiency.toLowerCase().includes(lowerCaseFilter)) ||
           (item.model_name && item.model_name.toLowerCase().includes(lowerCaseFilter))
         );
       } else {
@@ -388,46 +388,92 @@ const HistoryPage = () => {
     };
   };
 
-  const histogramOptions = {
-    responsive: true,
-    plugins: {
-      legend: { position: "top" },
-      title: {
-        display: true,
-        text: "Predicted value distribution",
+  const histogramOptions = (isDarkMode) => {
+    const textColor = isDarkMode ? "white" : "black";
+    return {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: "top",
+          labels: {
+            color: textColor,
+          },
+        },
+        title: {
+          display: true,
+          text: "Predicted value distribution",
+          color: textColor,
+        },
       },
-    },
-    scales: {
-      y: {
-        min: 0,
-        ticks: { stepSize: 1 },
-        title: { display: true, text: "Count" },
+      scales: {
+        y: {
+          min: 0,
+          ticks: {
+            stepSize: 1,
+            color: textColor,
+          },
+          title: {
+            display: true,
+            text: "Count",
+            color: textColor,
+          },
+        },
+        x: {
+          ticks: {
+            color: textColor,
+          },
+          title: {
+            display: true,
+            text: "Predicted value range",
+            color: textColor,
+          },
+        },
       },
-      x: {
-        title: { display: true, text: "Predicted value range" },
-      },
-    },
-  };
+    };
+  };  
 
-  const trendOptions = {
-    responsive: true,
-    plugins: {
-      legend: { position: "top" },
-      title: {
-        display: true,
-        text: predictions.length === 0 ? "No predictions available" : "Predictions per day",
+  const trendOptions = (isDarkMode) => {
+    const textColor = isDarkMode ? "white" : "black";
+    return {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: "top",
+          labels: {
+            color: textColor,
+          },
+        },
+        title: {
+          display: true,
+          text: predictions.length === 0 ? "No predictions available" : "Predictions per day",
+          color: textColor,
+        },
       },
-    },
-    scales: {
-      y: {
-        min: 0,
-        ticks: { stepSize: 1 },
-        title: { display: true, text: "Number of predictions" },
+      scales: {
+        y: {
+          min: 0,
+          ticks: {
+            stepSize: 1,
+            color: textColor,
+          },
+          title: {
+            display: true,
+            text: "Number of predictions",
+            color: textColor,
+          },
+        },
+        x: {
+          ticks: {
+            color: textColor,
+          },
+          title: {
+            display: true,
+            text: "Date",
+            color: textColor,
+          },
+        },
       },
-      x: {
-        title: { display: true, text: "Date" },
-      },
-    },
+    };
   };
 
   if (loading)
@@ -509,8 +555,11 @@ const HistoryPage = () => {
                 value={filterText}
                 onChange={handleFilterChange}
                 placeholder="Search predictions..."
-                className="w-full px-3 h-11 border rounded-mdfocus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+                className={`w-full px-3 h-11 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  isDarkMode
+                    ? "bg-gray-700 text-gray-200 border-gray-600 placeholder-gray-400"
+                    : "bg-white text-gray-800 border-gray-300 placeholder-gray-500"
+                }`}              />
             </div>
 
             <div>
@@ -521,7 +570,11 @@ const HistoryPage = () => {
                 id="column"
                 value={filterColumn}
                 onChange={handleColumnChange}
-                className="h-11 px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                className={`h-11 px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer ${
+                  isDarkMode
+                    ? "bg-gray-700 text-gray-200 border-gray-600"
+                    : "bg-white text-gray-800 border-gray-300"
+                }`}
               >
                 <option value="all">All columns</option>
                 <option value="date">Date</option>
@@ -548,10 +601,10 @@ const HistoryPage = () => {
 
           <div className="grid grid-cols-2 gap-6 mb-6">
             <div className={`p-4 rounded-lg shadow ${isDarkMode ? "bg-gray-700" : "bg-gray-50"}`}>
-              <Bar data={getHistogramData()} options={histogramOptions} />
+              <Bar data={getHistogramData(isDarkMode)} options={histogramOptions(isDarkMode)} />
             </div>
             <div className={`p-4 rounded-lg shadow ${isDarkMode ? "bg-gray-700" : "bg-gray-50"}`}>
-              <Bar data={getTrendData()} options={trendOptions} />
+              <Bar data={getTrendData(isDarkMode)} options={trendOptions(isDarkMode)} />
             </div>
           </div>
 

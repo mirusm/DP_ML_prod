@@ -27,11 +27,11 @@ const InfoPage = () => {
           </ol>
         </nav>
         <header className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold dark:text-gray-200">Tooltip</h1>
+          <h1 className={`text-2xl font-bold ${isDarkMode ? "text-gray-200" : "text-gray-800"}`}>Tooltip</h1>
         </header>
 
         <div className={`rounded-lg shadow p-6 ${isDarkMode ? "bg-gray-800 text-gray-300" : "bg-white"}`}>
-          <h2 className="text-2xl font-bold mb-4 dark:text-gray-200">
+          <h2 className={`text-2xl font-bold mb-4 ${isDarkMode ? "text-gray-200" : "text-gray-800"}`}>
             Our project: ML-powered QSAR web tool for predicting ALR1/ALR2 inhibitor efficacy
           </h2>
           <div className="text-lg space-y-4">

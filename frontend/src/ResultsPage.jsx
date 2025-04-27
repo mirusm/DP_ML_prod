@@ -343,7 +343,7 @@ const ResultPage = () => {
 
           <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${isDarkMode ? "text-gray-700" : "text-black"}`}>
             <div className="bg-white rounded-t-lg shadow overflow-hidden">
-            <div className={`text-white p-3 ${isDarkMode ? "bg-gray-800" : "bg-blue-600"}`}>
+            <div className={`text-white p-3 ${isDarkMode ? "bg-blue-600" : "bg-blue-600"}`}>
               <h3 className="font-bold">Basic information</h3>
             </div>
 
@@ -387,7 +387,7 @@ const ResultPage = () => {
 
               {selectedResult.properties && (
                 <div className="bg-white rounded-t-lg shadow">
-                  <div className={`text-white p-3 ${isDarkMode ? "bg-gray-800" : "bg-blue-600"}`}>
+                  <div className={`text-white p-3 ${isDarkMode ? "bg-blue-600" : "bg-blue-600"}`}>
                     <h3 className="font-bold">Molecular properties</h3>
                   </div>
                   <div className="space-y-2 p-4">
@@ -430,7 +430,7 @@ const ResultPage = () => {
 
               {selectedResult.descriptors && (
                 <div className="bg-white rounded-t-lg shadow">
-                  <div className={`text-white p-3 ${isDarkMode ? "bg-gray-800" : "bg-blue-600"}`}>
+                  <div className={`text-white p-3 ${isDarkMode ? "bg-blue-600" : "bg-blue-600"}`}>
                     <h3 className="font-bold">Molecular descriptors</h3>
                   </div>
                   <div className="space-y-2 p-4">
@@ -474,7 +474,7 @@ const ResultPage = () => {
             <div>
               {selectedResult.molecule_image && (
                 <div className="bg-white rounded-t-lg shadow overflow-hidden">
-                  <div className={`text-white p-3 ${isDarkMode ? "bg-gray-800" : "bg-blue-600"}`}>
+                  <div className={`text-white p-3 ${isDarkMode ? "bg-blue-600" : "bg-blue-600"}`}>
                     <h3 className="font-bold">Molecular structure</h3>
                   </div>
                   <img
@@ -489,7 +489,7 @@ const ResultPage = () => {
 
               {selectedResult.shap_plot && (
                 <div className="bg-white rounded-t-lg shadow">
-                  <div className={`text-white p-3 ${isDarkMode ? "bg-gray-800" : "bg-blue-600"}`}>
+                  <div className={`text-white p-3 ${isDarkMode ? "bg-blue-600" : "bg-blue-600"}`}>
                     <h3 className="font-bold">SHAP Explainability</h3>
                   </div>
                   <img
