@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from "react-router-dom";
 import { signOut } from 'firebase/auth';
 import { auth } from './firebase/firebase';
-import { Info, ChartScatter, Monitor, Microscope, LogOut, Moon } from "lucide-react";
+import { Info, ChartScatter, Monitor, Microscope, LogOut, Moon, X } from "lucide-react";
 import { toggleDarkMode, initializeTheme } from './utils/theme';
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen, setIsOpen }) => {
   const navigate = useNavigate();
   const currentUser = auth.currentUser;
   const [isDarkMode, setIsDarkMode] = useState(initializeTheme());
@@ -35,10 +35,17 @@ const Sidebar = () => {
 
   return (
     <aside
-      className={`w-64 p-4 flex flex-col space-y-4 fixed h-screen transition-colors duration-200 ${
-        isDarkMode ? "bg-gray-800 text-white" : "bg-blue-600 text-white"
-      }`}
+      className={`fixed top-0 left-0 w-64 h-screen p-4 flex flex-col space-y-4 transition-transform duration-300 transform ${
+        isOpen ? "translate-x-0" : "-translate-x-full"
+      } md:translate-x-0 z-50 ${isDarkMode ? "bg-gray-800 text-white" : "bg-blue-600 text-white"}`}
     >
+      <button
+        className="md:hidden self-end p-2 rounded-lg text-white"
+        onClick={() => setIsOpen(false)}
+        aria-label="Close sidebar"
+      >
+        <X className="h-6 w-6" />
+      </button>
       <div className="flex items-center space-x-3 pt-3 pl-2 mb-10">
         <div
           className={`w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold ${
@@ -61,6 +68,7 @@ const Sidebar = () => {
           className={`flex items-center space-x-2 p-2 rounded ${
             isDarkMode ? "hover:bg-gray-700" : "hover:bg-blue-700"
           }`}
+          onClick={() => setIsOpen(false)}
         >
           <Monitor className="h-6 w-6 text-white" />
           <span className="text-white">Dashboard</span>
@@ -70,6 +78,7 @@ const Sidebar = () => {
           className={`flex items-center space-x-2 p-2 rounded ${
             isDarkMode ? "hover:bg-gray-700" : "hover:bg-blue-700"
           }`}
+          onClick={() => setIsOpen(false)}
         >
           <Microscope className="h-6 w-6 text-white" />
           <span className="text-white">New prediction</span>
@@ -79,6 +88,7 @@ const Sidebar = () => {
           className={`flex items-center space-x-2 p-2 rounded ${
             isDarkMode ? "hover:bg-gray-700" : "hover:bg-blue-700"
           }`}
+          onClick={() => setIsOpen(false)}
         >
           <ChartScatter className="h-6 w-6 text-white" />
           <span className="text-white">My predictions</span>
@@ -88,6 +98,7 @@ const Sidebar = () => {
           className={`flex items-center space-x-2 p-2 rounded ${
             isDarkMode ? "hover:bg-gray-700" : "hover:bg-blue-700"
           }`}
+          onClick={() => setIsOpen(false)}
         >
           <Info className="h-6 w-6 text-white" />
           <span className="text-white">Tooltip</span>

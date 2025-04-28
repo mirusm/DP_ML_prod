@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import PropertyDisplay from "./PropertyDisplay";
+import { Menu } from "lucide-react";
 
 const ResultPage = () => {
   const location = useLocation();
@@ -18,20 +18,20 @@ const ResultPage = () => {
   const [descriptorInfo, setDescriptorInfo] = useState("");
   const [descriptorKey, setDescriptorKey] = useState("");
   const [activeTab, setActiveTab] = useState("ALR1");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem('theme') === 'dark';
+  });
   const resultsPerPage = 5;
   const navigate = useNavigate();
-    const [isDarkMode, setIsDarkMode] = useState(() => {
-      return localStorage.getItem('theme') === 'dark';
-    });
-  
-    useEffect(() => {
-      const handleThemeChange = (e) => {
-        setIsDarkMode(e.detail.isDark);
-      };
-  
-      window.addEventListener('themeChanged', handleThemeChange);
-      return () => window.removeEventListener('themeChanged', handleThemeChange);
-    }, []);
+
+  useEffect(() => {
+    const handleThemeChange = (e) => {
+      setIsDarkMode(e.detail.isDark);
+    };
+    window.addEventListener('themeChanged', handleThemeChange);
+    return () => window.removeEventListener('themeChanged', handleThemeChange);
+  }, []);
 
   const handleNavigation = () => {
     const destination = origin === "dashboard" ? "/dashboard" : "/my-predictions";
@@ -47,7 +47,7 @@ const ResultPage = () => {
   const formatDate = (dateStr) => {
     if (!dateStr) return "N/A";
     try {
-      const date = dateStr.toDate ? dateStr.toDate() : new Date(dateStr); // Handle Firebase Timestamp
+      const date = dateStr.toDate ? dateStr.toDate() : new Date(dateStr);
       return date.toLocaleDateString("de-DE", {
         day: "2-digit",
         month: "2-digit",
@@ -73,7 +73,6 @@ const ResultPage = () => {
     });
   };
 
-  // Normalize results to handle model vs. model_name
   const normalizedResults = results.map((result) => ({
     ...result,
     model: result.model || result.model_name || "N/A",
@@ -142,15 +141,12 @@ const ResultPage = () => {
     const descriptors = selectedResult.descriptors || {};
 
     let csvContent = "Category,Key,Value\n";
-
     Object.entries(basicInfo).forEach(([key, value]) => {
       csvContent += `Basic Info,${key},${value}\n`;
     });
-
     Object.entries(properties).forEach(([key, value]) => {
       csvContent += `Properties,${key},${value}\n`;
     });
-
     Object.entries(descriptors).forEach(([key, descriptor]) => {
       csvContent += `Descriptors,${key}_value,${descriptor.value}\n`;
       csvContent += `Descriptors,${key}_importance,${descriptor.importance}\n`;
@@ -251,43 +247,55 @@ const ResultPage = () => {
 
   const getPredictionColorClass = (model, value) => {
     const val = value || 0;
-  
     if (model === "ALR1") {
       if (val < 0.4) return 'bg-red-500';
       if (val < 0.6) return 'bg-orange-500';
       if (val < 0.8) return 'bg-yellow-500';
       return 'bg-green-500';
     } else {
-      if (val < 10) return 'bg-green-500';  
-      if (val < 20) return 'bg-green-400';  
-      if (val < 30) return 'bg-yellow-400';  
-      if (val < 60) return 'bg-orange-400';  
-      if (val < 70) return 'bg-orange-500';  
-      if (val < 80) return 'bg-red-400';   
-      if (val < 90) return 'bg-red-500';    
-      return 'bg-red-600';                   
+      if (val < 10) return 'bg-green-500';
+      if (val < 20) return 'bg-green-400';
+      if (val < 30) return 'bg-yellow-400';
+      if (val < 60) return 'bg-orange-400';
+      if (val < 70) return 'bg-orange-500';
+      if (val < 80) return 'bg-red-400';
+      if (val < 90) return 'bg-red-500';
+      return 'bg-red-600';
     }
   };
 
   if (!singleResult && (!results || results.length === 0)) {
     return (
-      <div className="flex h-screen bg-gray-100">
-        <Sidebar />
-        <div className="container mx-auto p-4">
-          <h2 className="text-2xl font-bold text-red-600">No results available</h2>
-          <p className="text-gray-500 mt-2">
-            No prediction results were found. Try running a new prediction{" "}
-            <Link to="/new-prediction" className="text-blue-600 hover:underline">
-              here
-            </Link>.
-          </p>
-          <Link
-            to="/dashboard"
-            className="mt-4 inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+      <div className={`flex min-h-screen ${isDarkMode ? "bg-gray-900 text-gray-300" : "bg-gray-100"}`}>
+        <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+        <main
+          className={`flex-1 p-4 sm:p-6 transition-all duration-300 ${
+            isSidebarOpen ? "ml-64" : "ml-0"
+          } md:ml-64 ${isDarkMode ? "bg-gray-900 text-gray-300" : "bg-gray-100"}`}
+        >
+          <button
+            className="md:hidden mb-4 p-2 rounded-lg bg-blue-600 text-white"
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            aria-label="Toggle sidebar"
           >
-            Back to dashboard
-          </Link>
-        </div>
+            <Menu className="h-6 w-6" />
+          </button>
+          <div className={`rounded-lg shadow p-4 sm:p-6 ${isDarkMode ? "bg-gray-800" : "bg-white"}`}>
+            <h2 className="text-xl sm:text-2xl font-bold text-red-600">No results available</h2>
+            <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm sm:text-base">
+              No prediction results were found. Try running a new prediction{" "}
+              <Link to="/new-prediction" className="text-blue-600 hover:underline">
+                here
+              </Link>.
+            </p>
+            <Link
+              to="/dashboard"
+              className="mt-4 inline-block bg-blue-500 text-white px-4 sm:px-6 py-2 sm:py-3 rounded text-sm sm:text-base hover:bg-blue-600"
+            >
+              Back to dashboard
+            </Link>
+          </div>
+        </main>
       </div>
     );
   }
@@ -297,103 +305,136 @@ const ResultPage = () => {
       selectedResult.origin = " "
     }
     return (
-      <div className={`flex h-screen ${isDarkMode ? "bg-gray-900 text-gray-300" : "bg-white"}`}>
-        <Sidebar />
-        <div className="flex-1 p-6 ml-64 overflow-y-auto">
-          <nav aria-label="breadcrumb" className="mb-4 text-sm font-medium">
-            <ol className="list-none p-0 inline-flex">
+      <div className={`flex min-h-screen ${isDarkMode ? "bg-gray-900 text-gray-300" : "bg-white"}`}>
+        <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+        <main
+          className={`flex-1 p-4 sm:p-6 transition-all duration-300 ${
+            isSidebarOpen ? "ml-64" : "ml-0"
+          } md:ml-64 overflow-y-auto ${isDarkMode ? "bg-gray-900 text-gray-300" : "bg-white"}`}
+        >
+          <button
+            className="md:hidden mb-4 p-2 rounded-lg bg-blue-600 text-white"
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            aria-label="Toggle sidebar"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+          <nav
+            aria-label="breadcrumb"
+            className="mb-4 text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400"
+          >
+            <ol className="list-none p-0 inline-flex flex-wrap">
               <li className="flex items-center">
-                <Link to={`/${selectedResult.origin.toLowerCase()}`} className="hover:text-blue-600 cursor-pointer">
-                {selectedResult.origin.replace(/-/g, ' ')}
+                <Link
+                  to={`/${selectedResult.origin.toLowerCase()}`}
+                  className="hover:text-blue-600 cursor-pointer truncate max-w-[150px] sm:max-w-none"
+                >
+                  {selectedResult.origin.replace(/-/g, " ")}
                 </Link>
-                <span className="mx-2">/</span>
+                <span className="mx-1 sm:mx-2">/</span>
               </li>
               <li className="flex items-center">
                 <span>Result</span>
               </li>
             </ol>
           </nav>
-          <div className="flex justify-between items-center mb-6">
-            <h2 className={`text-2xl font-bold ${isDarkMode ? "text-gray-300" : "text-blue-600"}`}>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-4">
+            <h2
+              className={`text-xl sm:text-2xl font-bold ${
+                isDarkMode ? "text-gray-200" : "text-blue-600"
+              }`}
+            >
               Result details - {selectedResult.model || selectedResult.model_name || "Unknown"}
             </h2>
-            <div className="text-white">
+            <div className="flex flex-wrap gap-2">
               {results.length > 0 && (
                 <button
                   onClick={handleBackToList}
-                  className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800 mr-4 cursor-pointer"
+                  className="bg-gray-700 text-white px-3 sm:px-4 py-2 rounded text-sm sm:text-base hover:bg-gray-800 cursor-pointer"
                 >
                   Back to results list
                 </button>
               )}
               <button
                 onClick={handleNavigation}
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 cursor-pointer"
+                className="bg-blue-500 text-white px-3 sm:px-4 py-2 rounded text-sm sm:text-base hover:bg-blue-600 cursor-pointer"
               >
                 {origin === "dashboard" ? "Back to dashboard" : "Back to history"}
               </button>
               <button
                 onClick={exportResultToCSV}
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ml-4 cursor-pointer"
+                className="bg-green-600 text-white px-3 sm:px-4 py-2 rounded text-sm sm:text-base hover:bg-green-700 cursor-pointer"
               >
                 Export to CSV
               </button>
             </div>
           </div>
 
-          <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${isDarkMode ? "text-gray-700" : "text-black"}`}>
-            <div className="bg-white rounded-t-lg shadow overflow-hidden">
-            <div className={`text-white p-3 ${isDarkMode ? "bg-blue-600" : "bg-blue-600"}`}>
-              <h3 className="font-bold">Basic information</h3>
-            </div>
-
-            <div className="p-4 grid grid-cols-2 gap-4 items-center">
-              <div className="space-y-2">
-                <p>
-                  <span className="font-semibold">SMILES:</span> {selectedResult.smiles || "N/A"}
-                </p>
-                <p>
-                  <span className="font-semibold">Canonical SMILES:</span>{" "}
-                  {selectedResult.info?.canonical_smiles || "N/A"}
-                </p>
-                <p>
-                  <span className="font-semibold">CAS:</span> {selectedResult.cas || "N/A"}
-                </p>
-                <p>
-                  <span className="font-semibold">IUPAC name:</span>{" "}
-                  {selectedResult.info?.iupac_name || "N/A"}
-                </p>
-                <p>
-                  <span className="font-semibold">Formula:</span>{" "}
-                  {formatFormula(selectedResult.info?.formula || "N/A")}
-                </p>
-              </div>
-
-              <div className="flex flex-col items-center justify-center pl-30">
-                <div
-                  className={`w-24 h-24 rounded-full flex items-center justify-center text-white font-bold text-xl mb-2
-                    ${getPredictionColorClass(selectedResult.model || selectedResult.model_name, selectedResult.predictedValue || selectedResult.prediction)}
-                  `}
-                >
-                  {(selectedResult.model === "ALR1" || selectedResult.model_name === "ALR1")
-                    ? formatNumber(((selectedResult.predictedValue || 0) * 100)) + "%"
-                    : formatNumber((selectedResult.predictedValue || selectedResult.prediction || 0))}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            <div className="space-y-4 sm:space-y-6">
+              <div className={`rounded-lg shadow overflow-hidden ${isDarkMode ? "bg-gray-800" : "bg-white"}`}>
+                <div className="bg-blue-600 text-white p-3">
+                  <h3 className="font-bold text-sm sm:text-base">Basic information</h3>
                 </div>
-                <p className={`font-semibold ${selectedResult.efficiency === "Effective" ? "text-green-600" : "text-red-600"}`}>
-                  {selectedResult.efficiency || "N/A"}
-                </p>
+                <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                  <div className="space-y-2 text-sm sm:text-base">
+                    <p>
+                      <span className="font-semibold">SMILES:</span>{" "}
+                      <span className="break-all">{selectedResult.smiles || "N/A"}</span>
+                    </p>
+                    <p>
+                      <span className="font-semibold">Canonical SMILES:</span>{" "}
+                      <span className="break-all">
+                        {selectedResult.info?.canonical_smiles || "N/A"}
+                      </span>
+                    </p>
+                    <p>
+                      <span className="font-semibold">CAS:</span> {selectedResult.cas || "N/A"}
+                    </p>
+                    <p>
+                      <span className="font-semibold">IUPAC name:</span>{" "}
+                      <span className="break-words">
+                        {selectedResult.info?.iupac_name || "N/A"}
+                      </span>
+                    </p>
+                    <p>
+                      <span className="font-semibold">Formula:</span>{" "}
+                      {formatFormula(selectedResult.info?.formula || "N/A")}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-center justify-center">
+                    <div
+                      className={`w-20 sm:w-24 h-20 sm:h-24 rounded-full flex items-center justify-center text-white font-bold text-lg sm:text-xl mb-2 ${getPredictionColorClass(
+                        selectedResult.model || selectedResult.model_name,
+                        selectedResult.predictedValue || selectedResult.prediction
+                      )}`}
+                    >
+                      {(selectedResult.model === "ALR1" || selectedResult.model_name === "ALR1")
+                        ? formatNumber((selectedResult.predictedValue || 0) * 100) + "%"
+                        : formatNumber(selectedResult.predictedValue || selectedResult.prediction || 0)}
+                    </div>
+                    <p
+                      className={`font-semibold text-sm sm:text-base ${
+                        selectedResult.efficiency === "Effective" ? "text-green-600" : "text-red-600"
+                      }`}
+                    >
+                      {selectedResult.efficiency || "N/A"}
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
 
               {selectedResult.properties && (
-                <div className="bg-white rounded-t-lg shadow">
-                  <div className={`text-white p-3 ${isDarkMode ? "bg-blue-600" : "bg-blue-600"}`}>
-                    <h3 className="font-bold">Molecular properties</h3>
+                <div className={`rounded-lg shadow ${isDarkMode ? "bg-gray-800" : "bg-white"}`}>
+                  <div className="bg-blue-600 text-white p-3">
+                    <h3 className="font-bold text-sm sm:text-base">Molecular properties</h3>
                   </div>
-                  <div className="space-y-2 p-4">
+                  <div className="space-y-2 p-4 text-sm sm:text-base">
                     <p>
                       <span className="font-semibold">Num. heavy atoms:</span>{" "}
-                      {selectedResult.numHeavyAtoms || selectedResult.properties.num_heavy_atoms || "N/A"}
+                      {selectedResult.numHeavyAtoms ||
+                        selectedResult.properties.num_heavy_atoms ||
+                        "N/A"}
                     </p>
                     <p>
                       <span className="font-semibold">Num. aromatic atoms:</span>{" "}
@@ -429,11 +470,11 @@ const ResultPage = () => {
               )}
 
               {selectedResult.descriptors && (
-                <div className="bg-white rounded-t-lg shadow">
-                  <div className={`text-white p-3 ${isDarkMode ? "bg-blue-600" : "bg-blue-600"}`}>
-                    <h3 className="font-bold">Molecular descriptors</h3>
+                <div className={`rounded-lg shadow ${isDarkMode ? "bg-gray-800" : "bg-white"}`}>
+                  <div className="bg-blue-600 text-white p-3">
+                    <h3 className="font-bold text-sm sm:text-base">Molecular descriptors</h3>
                   </div>
-                  <div className="space-y-2 p-4">
+                  <div className="space-y-2 p-4 text-sm sm:text-base">
                     {Object.entries(selectedResult.descriptors).map(([key, descriptor]) => (
                       <div key={key} className="border border-blue-600 rounded p-2 relative">
                         <div className="flex items-center">
@@ -442,7 +483,7 @@ const ResultPage = () => {
                             onMouseEnter={() => handleShowDescriptorInfoHover(key)}
                             onMouseLeave={handleHideDescriptorInfo}
                             onClick={() => handleShowDescriptorInfoClick(key)}
-                            className="text-red-600 hover:text-red-800 cursor-pointer ml-2 font-bold"
+                            className="text-red-600 hover:text-red-800 cursor-pointer ml-2 font-bold text-xs sm:text-sm"
                             aria-label={`Show information about ${key}`}
                           >
                             i
@@ -454,15 +495,19 @@ const ResultPage = () => {
                         </div>
                         {!isClickedPopup && showDescriptorPopup && descriptorKey === key && descriptorInfo && (
                           <div
-                           className="absolute z-20 bg-white p-4 rounded-lg shadow-md max-w-xs w-64 text-gray-800 border border-gray-200"
-                           style={{
-                             top: '0', 
-                             left: '60%', 
-                             marginLeft: '0.5rem', 
-                           }}
+                            className={`absolute z-20 p-3 rounded-lg shadow-md w-56 sm:w-64 text-gray-800 border border-gray-200 ${
+                              isDarkMode ? "bg-gray-700 text-white border-gray-600" : "bg-white"
+                            }`}
+                            style={{
+                              top: "0",
+                              left: "60%",
+                              marginLeft: "0.5rem",
+                            }}
                           >
-                           <p className="whitespace-pre-wrap break-words">{descriptorInfo}</p>
-                         </div>
+                            <p className="whitespace-pre-wrap break-words text-xs sm:text-sm">
+                              {descriptorInfo}
+                            </p>
+                          </div>
                         )}
                       </div>
                     ))}
@@ -471,7 +516,7 @@ const ResultPage = () => {
               )}
             </div>
 
-            <div>
+            <div className="space-y-4 sm:space-y-6">
               {selectedResult.molecule_image && (
                 <div className="bg-white rounded-t-lg shadow overflow-hidden">
                   <div className={`text-white p-3 ${isDarkMode ? "bg-blue-600" : "bg-blue-600"}`}>
@@ -504,6 +549,7 @@ const ResultPage = () => {
             </div>
           </div>
 
+
           {showImagePopup && popupImageSrc && (
             <div
               className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -512,7 +558,7 @@ const ResultPage = () => {
               <img
                 src={popupImageSrc}
                 alt="Zoomed image"
-                className="max-w-3xl max-h-3xl object-contain"
+                className="max-w-[90vw] max-h-[90vh] object-contain"
                 onClick={(e) => e.stopPropagation()}
               />
             </div>
@@ -523,32 +569,62 @@ const ResultPage = () => {
               className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
               onClick={handleClosePopup}
             >
-              <div className="bg-white p-4 rounded-lg shadow-md max-w-md w-full text-gray-800">
-                <p className="whitespace-pre-wrap break-words">{descriptorInfo}</p>
+              <div
+                className={`p-4 sm:p-6 rounded-lg shadow-md max-w-[90vw] sm:max-w-md w-full ${
+                  isDarkMode ? "bg-gray-700 text-gray-200" : "bg-white text-gray-800"
+                }`}
+              >
+                <p className="whitespace-pre-wrap break-words text-sm sm:text-base">{descriptorInfo}</p>
               </div>
             </div>
           )}
-        </div>
+        </main>
       </div>
     );
   }
 
   return (
-    <div className={`flex h-screen`}>
-      <Sidebar />
-      <div className={`flex-1 p-6 ml-64 overflow-y-auto ${isDarkMode ? "bg-gray-900 text-gray-300" : "bg-white"}`}>
-      <nav aria-label="breadcrumb" className="mb-4 text-sm font-medium">
-          <ol className="list-none p-0 inline-flex">
+    <div className={`flex min-h-screen ${isDarkMode ? "bg-gray-900 text-gray-300" : "bg-white"}`}>
+      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      <main
+        className={`flex-1 p-4 sm:p-6 transition-all duration-300 ${
+          isSidebarOpen ? "ml-64" : "ml-0"
+        } md:ml-64 overflow-y-auto ${isDarkMode ? "bg-gray-900 text-gray-300" : "bg-white"}`}
+      >
+        <button
+          className="md:hidden mb-4 p-2 rounded-lg bg-blue-600 text-white"
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          aria-label="Toggle sidebar"
+        >
+          <Menu className="h-6 w-6" />
+        </button>
+        <nav
+          aria-label="breadcrumb"
+          className="mb-4 text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400"
+        >
+          <ol className="list-none p-0 inline-flex flex-wrap">
             <li className="flex items-center">
               <span>Results</span>
             </li>
           </ol>
         </nav>
-        <h2 className="text-2xl font-bold mb-6">Prediction results</h2>
+        <h2
+          className={`text-xl sm:text-2xl font-bold mb-4 sm:mb-6 ${
+            isDarkMode ? "text-gray-200" : "text-blue-600"
+          }`}
+        >
+          Prediction results
+        </h2>
 
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-2">
           <button
-            className={`px-4 py-2 mr-2 rounded cursor-pointer ${activeTab === "ALR1" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-800"}`}
+            className={`px-3 sm:px-4 py-2 rounded text-sm sm:text-base cursor-pointer ${
+              activeTab === "ALR1"
+                ? "bg-blue-600 text-white"
+                : isDarkMode
+                ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+            }`}
             onClick={() => {
               setActiveTab("ALR1");
               setCurrentPage(1);
@@ -557,7 +633,13 @@ const ResultPage = () => {
             ALR1 Results
           </button>
           <button
-            className={`px-4 py-2 rounded cursor-pointer ${activeTab === "ALR2" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-800"}`}
+            className={`px-3 sm:px-4 py-2 rounded text-sm sm:text-base cursor-pointer ${
+              activeTab === "ALR2"
+                ? "bg-blue-600 text-white"
+                : isDarkMode
+                ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+            }`}
             onClick={() => {
               setActiveTab("ALR2");
               setCurrentPage(1);
@@ -567,9 +649,9 @@ const ResultPage = () => {
           </button>
         </div>
 
-        <div className={`rounded-lg shadow p-6 ${isDarkMode ? "bg-gray-800 text-gray-300" : "bg-white"}`}>
+        <div className={`rounded-lg shadow p-4 sm:p-6 ${isDarkMode ? "bg-gray-800 text-gray-300" : "bg-white"}`}>
           {paginatedResults.length === 0 ? (
-            <p className="text-center py-4">
+            <p className="text-center py-4 text-sm sm:text-base">
               No results available for {activeTab}. Try running a new prediction{" "}
               <Link to="/new-prediction" className="text-blue-600 hover:underline">
                 here
@@ -577,54 +659,68 @@ const ResultPage = () => {
             </p>
           ) : (
             <>
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr>
-                    <th className="p-2">Date</th>
-                    <th className="p-2">SMILES</th>
-                    <th className="p-2">CAS</th>
-                    <th className="p-2">Predicted value</th>
-                    <th className="p-2">Efficiency</th>
-                    <th className="p-2">Num. heavy atoms</th>
-                    <th className="p-2">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedResults.map((result, index) => (
-                    <tr key={index}>
-                      <td className="p-2">{formatDate(result.date)}</td>
-                      <td className="p-2">{result.smiles || "N/A"}</td>
-                      <td className="p-2">{result.cas || "-"}</td>
-                      <td className="p-2">{formatNumber(result.predictedValue)}</td>
-                      <td
-                        className="p-2"
-                        style={{
-                          color: result.efficiency === "Effective" ? "green" : "red",
-                        }}
-                      >
-                        {result.efficiency || "N/A"}
-                      </td>
-                      <td className="p-2">
-                        {result.numHeavyAtoms || result.properties?.num_heavy_atoms || "N/A"}
-                      </td>
-                      <td className="p-2">
-                        <button
-                          onClick={() => handleViewDetails(result)}
-                          className="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 cursor-pointer"
-                        >
-                          View
-                        </button>
-                      </td>
+              <div className="overflow-x-auto">
+                <table
+                  className={`min-w-full text-left ${
+                    isDarkMode ? "bg-gray-800 text-gray-300" : "bg-white"
+                  }`}
+                >
+                  <thead className={`${isDarkMode ? "bg-gray-700" : "bg-gray-100"}`}>
+                    <tr>
+                      <th className="p-2 sm:p-3 text-xs sm:text-sm">Date</th>
+                      <th className="p-2 sm:p-3 text-xs sm:text-sm">SMILES</th>
+                      <th className="p-2 sm:p-3 text-xs sm:text-sm hidden sm:table-cell">CAS</th>
+                      <th className="p-2 sm:p-3 text-xs sm:text-sm">Predicted value</th>
+                      <th className="p-2 sm:p-3 text-xs sm:text-sm">Efficiency</th>
+                      <th className="p-2 sm:p-3 text-xs sm:text-sm hidden md:table-cell">
+                        Num. heavy atoms
+                      </th>
+                      <th className="p-2 sm:p-3 text-xs sm:text-sm">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-300 dark:divide-gray-600">
+                    {paginatedResults.map((result, index) => (
+                      <tr key={index}>
+                        <td className="p-2 sm:p-3 text-xs sm:text-sm">{formatDate(result.date)}</td>
+                        <td className="p-2 sm:p-3 text-xs sm:text-sm break-all">
+                          {result.smiles || "N/A"}
+                        </td>
+                        <td className="p-2 sm:p-3 text-xs sm:text-sm hidden sm:table-cell">
+                          {result.cas || "-"}
+                        </td>
+                        <td className="p-2 sm:p-3 text-xs sm:text-sm">
+                          {formatNumber(result.predictedValue)}
+                        </td>
+                        <td
+                          className="p-2 sm:p-3 text-xs sm:text-sm"
+                          style={{
+                            color: result.efficiency === "Effective" ? "green" : "red",
+                          }}
+                        >
+                          {result.efficiency || "N/A"}
+                        </td>
+                        <td className="p-2 sm:p-3 text-xs sm:text-sm hidden md:table-cell">
+                          {result.numHeavyAtoms || result.properties?.num_heavy_atoms || "N/A"}
+                        </td>
+                        <td className="p-2 sm:p-3 text-xs sm:text-sm">
+                          <button
+                            onClick={() => handleViewDetails(result)}
+                            className="bg-blue-600 text-white px-2 sm:px-3 py-1 sm:py-2 rounded text-xs sm:text-sm hover:bg-blue-700 cursor-pointer"
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-              <div className="flex justify-between items-center mt-4">
+              <div className="flex flex-wrap justify-between items-center mt-4 gap-2">
                 <button
                   onClick={handlePreviousPage}
                   disabled={currentPage === 1}
-                  className={`px-4 py-2 rounded text-white cursor-pointer ${
+                  className={`px-3 sm:px-4 py-2 rounded text-sm sm:text-base text-white cursor-pointer ${
                     currentPage === 1
                       ? "bg-gray-400 cursor-not-allowed"
                       : "bg-blue-600 hover:bg-blue-700"
@@ -632,13 +728,13 @@ const ResultPage = () => {
                 >
                   Previous
                 </button>
-                <span className="text-gray-700">
+                <span className="text-sm sm:text-base">
                   Page {currentPage} of {totalPages}
                 </span>
                 <button
                   onClick={handleNextPage}
                   disabled={currentPage === totalPages}
-                  className={`px-4 py-2 rounded text-white cursor-pointer ${
+                  className={`px-3 sm:px-4 py-2 rounded text-sm sm:text-base text-white cursor-pointer ${
                     currentPage === totalPages
                       ? "bg-gray-400 cursor-not-allowed"
                       : "bg-blue-600 hover:bg-blue-700"
@@ -651,15 +747,15 @@ const ResultPage = () => {
           )}
         </div>
 
-        <div className="mt-6 text-white">
+        <div className="mt-4 sm:mt-6">
           <Link
             to={origin === "dashboard" ? "/dashboard" : "/my-predictions"}
-            className="bg-blue-500 text-white px-4 py-3 rounded hover:bg-blue-600"
+            className="bg-blue-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded text-sm sm:text-base hover:bg-blue-600 inline-block"
           >
             {origin === "dashboard" ? "Back to dashboard" : "Back to history"}
           </Link>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

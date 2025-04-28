@@ -1,4 +1,3 @@
-// NewPredictionPage.jsx
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
@@ -7,6 +6,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { useAuth } from "./contexts/AuthContext";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "./firebase/firebase";
+import { Menu } from "lucide-react";
 
 const NewPredictionPage = ({ onResults }) => {
   const navigate = useNavigate();
@@ -18,10 +18,11 @@ const NewPredictionPage = ({ onResults }) => {
   const [pipelineEntries, setPipelineEntries] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [isRunning, setIsRunning] = useState(false);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark';
   });
+  const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
 
   useEffect(() => {
     const handleThemeChange = (e) => {
@@ -183,27 +184,56 @@ const NewPredictionPage = ({ onResults }) => {
   };
 
   return (
-    <div className="flex h-screen bg-white">
-      <Sidebar />
-      <main className={`flex-1 p-6 ml-64 overflow-auto ${isDarkMode ? "bg-gray-900 text-gray-300" : "bg-white"}`}>
-        <nav aria-label="breadcrumb" className="mb-4 text-sm font-medium">
+    <div className={`flex min-h-screen ${isDarkMode ? "bg-gray-900 text-gray-300" : "bg-white"}`}>
+      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      <main
+        className={`flex-1 p-4 sm:p-6 transition-all duration-300 overflow-auto ${
+          isSidebarOpen ? "ml-64" : "ml-0"
+        } md:ml-64 ${isDarkMode ? "bg-gray-900 text-gray-300" : "bg-white"}`}
+      >
+        <button
+          className="md:hidden mb-4 p-2 rounded-lg bg-blue-600 text-white"
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          aria-label="Toggle sidebar"
+        >
+          <Menu className="h-6 w-6" />
+        </button>
+        <nav
+          aria-label="breadcrumb"
+          className="mb-4 text-sm font-medium text-gray-600 dark:text-gray-400"
+        >
           <ol className="list-none p-0 inline-flex">
             <li className="flex items-center">
-              <span>New prediction</span>
+              <span className={`${isDarkMode ? "text-gray-200" : "text-gray-800"}`}>
+                New prediction
+              </span>
             </li>
           </ol>
         </nav>
         <header className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">New prediction</h1>
+          <h1
+            className={`text-xl sm:text-2xl font-bold ${
+              isDarkMode ? "text-gray-200" : "text-gray-800"
+            }`}
+          >
+            New prediction
+          </h1>
         </header>
 
-        <div className={`rounded-lg shadow p-6 mb-6 ${isDarkMode ? "bg-gray-800 text-gray-300" : "bg-white"}`}>
-
-          <div className="flex flex-row items-end space-x-4">
-            <div className="mb-4 w-[200px]">
+        <div
+          className={`rounded-lg shadow p-4 sm:p-6 mb-6 ${
+            isDarkMode ? "bg-gray-800 text-gray-300" : "bg-white"
+          }`}
+        >
+          <div className="flex flex-col sm:flex-row sm:items-end space-y-4 sm:space-y-0 sm:space-x-4">
+            <div className="w-full sm:w-48">
               <label className="block text-sm font-medium mb-2">Input type</label>
               <select
-                className="h-11 w-full p-2 border border-gray-300 rounded cursor-pointer"
+                className={`h-11 w-full p-2 border rounded cursor-pointer ${
+                  isDarkMode
+                    ? "bg-gray-700 border-gray-600 text-gray-300"
+                    : "bg-white border-gray-300 text-gray-900"
+                }`}
                 value={inputType}
                 onChange={handleInputTypeChange}
               >
@@ -211,10 +241,8 @@ const NewPredictionPage = ({ onResults }) => {
                 <option>CAS</option>
               </select>
             </div>
-            <div className="mb-4 flex-1">
-              <label className="block text-sm font-medium mb-2">
-                {inputType} code:
-              </label>
+            <div className="flex-1">
+              <label className="block text-sm font-medium mb-2">{inputType} code:</label>
               <input
                 type="text"
                 value={inputType === "SMILES" ? smiles : cas}
@@ -223,22 +251,42 @@ const NewPredictionPage = ({ onResults }) => {
                 }
                 onKeyDown={handleKeyDown}
                 placeholder={`Enter ${inputType} code`}
-                className="h-11 w-full p-2 border border-gray-300 rounded placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className={`h-11 w-full p-2 border rounded placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                  isDarkMode
+                    ? "bg-gray-700 border-gray-600 text-gray-300 placeholder-gray-400"
+                    : "bg-white border-gray-300 text-gray-900"
+                }`}
               />
             </div>
-            <div className="mb-8">
-              <button
-                onClick={handleAdd}
-                className={`h-11 text-white px-4 py-2 rounded text-lg hover:bg-blue-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer ${isDarkMode ? "bg-indigo-500" : "bg-blue-600"}`}
+            <div className="w-full sm:w-32 self-start">
+              <label
+                htmlFor="add-text"
+                className="text-sm font-medium mb-2 block text-transparent"
               >
                 Add
-              </button>
+              </label>
+            <button
+              onClick={handleAdd}
+              className="bg-blue-600 text-white px-5 py-3 rounded text-sm hover:bg-blue-700 mt-6 sm:mt-0 sm:self-end"
+            >
+              Add
+            </button>
             </div>
           </div>
         </div>
 
-        <div className={`rounded-lg shadow p-6 ${isDarkMode ? "bg-gray-800 text-gray-300" : "bg-white"}`}>
-          <h2 className="text-xl font-bold mb-4">Run pipeline</h2>
+        <div
+          className={`rounded-lg shadow p-4 sm:p-6 ${
+            isDarkMode ? "bg-gray-800 text-gray-300" : "bg-white"
+          }`}
+        >
+          <h2
+            className={`text-lg sm:text-xl font-bold mb-4 ${
+              isDarkMode ? "text-gray-200" : "text-gray-800"
+            }`}
+          >
+            Run pipeline
+          </h2>
           {isRunning ? (
             <div className="text-center py-4">
               <div className="modern-mouse-container">
@@ -247,53 +295,62 @@ const NewPredictionPage = ({ onResults }) => {
                   <div className="mouse-trail"></div>
                 </div>
               </div>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">Processing predictions...</p>
             </div>
           ) : pipelineEntries.length === 0 ? (
-            <p>No entries added yet.</p>
+            <p className="text-gray-600 dark:text-gray-400">No entries added yet.</p>
           ) : (
-            <div className="max-h-96 overflow-y-auto">
-            <table className="w-full text-left border-collapse">
-              <thead className={`sticky top-0`}>
-                <tr>
-                  <th className="p-2">SMILES code</th>
-                  <th className="p-2">CAS code</th>
-                  <th className="p-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pipelineEntries.map((entry, index) => (
-                  <tr key={index}>
-                    <td className="p-2">{entry.smiles || "-"}</td>
-                    <td className="p-2">{entry.cas || "-"}</td>
-                    <td className="p-2">
-                      <button
-                        onClick={() => handleDelete(index)}
-                        className="bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700 cursor-pointer"
-                      >
-                        Delete
-                      </button>
-                    </td>
+            <div className="max-h-96 overflow-y-auto overflow-x-auto">
+              <table
+                className={`w-full text-left border-collapse ${
+                  isDarkMode ? "bg-gray-800 text-gray-300" : "bg-white"
+                }`}
+              >
+                <thead
+                  className={`sticky top-0 ${isDarkMode ? "bg-gray-700" : "bg-gray-100"}`}
+                >
+                  <tr>
+                    <th className="p-2 text-xs sm:text-sm font-medium">SMILES code</th>
+                    <th className="p-2 text-xs sm:text-sm font-medium hidden sm:table-cell">
+                      CAS code
+                    </th>
+                    <th className="p-2 text-xs sm:text-sm font-medium">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-300 dark:divide-gray-600">
+                  {pipelineEntries.map((entry, index) => (
+                    <tr key={index}>
+                      <td className="p-2 text-sm">{entry.smiles || "-"}</td>
+                      <td className="p-2 text-sm hidden sm:table-cell">{entry.cas || "-"}</td>
+                      <td className="p-2">
+                        <button
+                          onClick={() => handleDelete(index)}
+                          className="bg-red-600 text-white px-2 sm:px-3 py-1 sm:py-2 rounded text-xs sm:text-sm hover:bg-red-700 cursor-pointer"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
           <button
             onClick={handleRun}
             disabled={isRunning}
-            className={`mt-4 cursor-pointer ${
+            className={`mt-4 w-full sm:w-auto text-white px-4 py-2 rounded text-base sm:text-lg transition duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 min-w-[100px] ${
               isRunning
                 ? "bg-gray-400 cursor-not-allowed opacity-50"
                 : "bg-green-600 hover:bg-green-700"
-            } text-white px-4 py-2 rounded text-lg transition duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 min-w-[100px]`}
+            }`}
             title={isRunning ? "Processing, please wait..." : "Run the prediction pipeline"}
           >
-          {isRunning ? "Running..." : "Run"}
+            {isRunning ? "Running..." : "Run"}
           </button>
         </div>
       </main>
-      <ToastContainer closeButton={false} />
+      <ToastContainer closeButton={false} theme={isDarkMode ? "dark" : "light"} />
     </div>
   );
 };
