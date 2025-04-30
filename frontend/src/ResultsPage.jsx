@@ -38,7 +38,7 @@ const ResultPage = () => {
     navigate(destination);
   };
 
-  const formatNumber = (num, decimals = 3) => {
+  const formatNumber = (num, decimals = 2) => {
     if (num === null || num === undefined) return "N/A";
     const number = Number(num);
     return isNaN(number) ? "N/A" : number.toFixed(decimals);
@@ -131,7 +131,10 @@ const ResultPage = () => {
       Canonical_SMILES: selectedResult.info?.canonical_smiles || "N/A",
       Formula: selectedResult.info?.formula || "N/A",
       CAS: selectedResult.cas || "N/A",
-      Prediction: selectedResult.predictedValue || selectedResult.prediction || "N/A",
+      Prediction:
+      (selectedResult.model === "ALR1" || selectedResult.model_name === "ALR1")
+        ? `${formatNumber((selectedResult.predictedValue || selectedResult.prediction || 0) * 100)}%`
+        : formatNumber(selectedResult.predictedValue || selectedResult.prediction || 0),
       Efficiency: selectedResult.efficiency || "N/A",
       IUPAC_name: selectedResult.info?.iupac_name || "N/A",
       Model: selectedResult.model || selectedResult.model_name || "N/A",
@@ -302,7 +305,7 @@ const ResultPage = () => {
 
   if (selectedResult) {
     if (!selectedResult.origin) {
-      selectedResult.origin = " "
+      selectedResult.origin = " ";
     }
     return (
       <div className={`flex min-h-screen ${isDarkMode ? "bg-gray-900 text-gray-300" : "bg-white"}`}>
@@ -410,15 +413,20 @@ const ResultPage = () => {
                       )}`}
                     >
                       {(selectedResult.model === "ALR1" || selectedResult.model_name === "ALR1")
-                        ? formatNumber((selectedResult.predictedValue || 0) * 100) + "%"
+                        ? `${formatNumber((selectedResult.predictedValue || selectedResult.prediction || 0) * 100)}%`
                         : formatNumber(selectedResult.predictedValue || selectedResult.prediction || 0)}
                     </div>
                     <p
-                      className={`font-semibold text-sm sm:text-base ${
+                      className={`font-semibold text-sm sm:text-base text-center ${
                         selectedResult.efficiency === "Effective" ? "text-green-600" : "text-red-600"
                       }`}
                     >
                       {selectedResult.efficiency || "N/A"}
+                    </p>
+                    <p className={`font-semibold text-sm sm:text-base text-center ${isDarkMode ? "bg-gray-800" : "bg-white"}`}>
+                      {(selectedResult.model === "ALR1" || selectedResult.model_name === "ALR1")
+                        ? "(Confidence score)"
+                        : "(Predicted value)"}
                     </p>
                   </div>
                 </div>
@@ -548,7 +556,6 @@ const ResultPage = () => {
               )}
             </div>
           </div>
-
 
           {showImagePopup && popupImageSrc && (
             <div
@@ -689,7 +696,9 @@ const ResultPage = () => {
                           {result.cas || "-"}
                         </td>
                         <td className="p-2 sm:p-3 text-xs sm:text-sm">
-                          {formatNumber(result.predictedValue)}
+                          {(result.model.toUpperCase() === "ALR1" || result.model_name?.toUpperCase() === "ALR1")
+                            ? `${formatNumber(result.predictedValue * 100)}%`
+                            : formatNumber(result.predictedValue)}
                         </td>
                         <td
                           className="p-2 sm:p-3 text-xs sm:text-sm"

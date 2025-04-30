@@ -246,8 +246,8 @@ const DashboardPage = () => {
                       </td>
                       <td className="p-2 sm:p-3 text-xs sm:text-sm whitespace-nowrap">
                         {item.model_name === "ALR1"
-                          ? `${(item.prediction * 100).toFixed(3)}%`
-                          : item.prediction}
+                          ? `${(item.prediction * 100).toFixed(2)}%`
+                          : Number(item.prediction).toFixed(2)}
                       </td>
                       <td
                         className="p-2 sm:p-3 text-xs sm:text-sm hidden md:table-cell whitespace-nowrap"

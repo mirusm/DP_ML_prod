@@ -216,7 +216,7 @@ const HistoryPage = () => {
       .filter((item) => item.model_name === "ALR1")
       .map((item) => {
         const value = typeof item.prediction === "number" ? item.prediction : parseFloat(item.prediction);
-        return isNaN(value) ? NaN : value;
+        return isNaN(value) ? NaN : Number(value.toFixed(2));
       })
       .filter((val) => !isNaN(val));
 
@@ -224,7 +224,7 @@ const HistoryPage = () => {
       .filter((item) => item.model_name === "ALR2")
       .map((item) => {
         const value = typeof item.prediction === "number" ? item.prediction : parseFloat(item.prediction);
-        return isNaN(value) ? NaN : value;
+        return isNaN(value) ? NaN : Number(value.toFixed(2));
       })
       .filter((val) => !isNaN(val));
 
@@ -764,8 +764,8 @@ const HistoryPage = () => {
                         </td>
                         <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm">
                           {item.model_name === "ALR1"
-                            ? `${(item.prediction * 100).toFixed(3)}%`
-                            : item.prediction}
+                            ? `${(item.prediction * 100).toFixed(2)}%`
+                            : Number(item.prediction).toFixed(2)}
                         </td>
                         <td
                           className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm hidden md:table-cell"
