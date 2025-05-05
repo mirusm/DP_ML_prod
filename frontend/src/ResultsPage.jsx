@@ -251,9 +251,9 @@ const ResultPage = () => {
   const getPredictionColorClass = (model, value) => {
     const val = value || 0;
     if (model === "ALR1") {
-      if (val < 0.4) return 'bg-red-500';
-      if (val < 0.6) return 'bg-orange-500';
-      if (val < 0.8) return 'bg-yellow-500';
+      if (val < 0.5645) return 'bg-red-500';
+      if (val < 0.75) return 'bg-orange-500';
+      if (val < 0.9) return 'bg-yellow-500';
       return 'bg-green-500';
     } else {
       if (val < 10) return 'bg-green-500';

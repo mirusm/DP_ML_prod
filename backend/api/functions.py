@@ -342,7 +342,7 @@ def get_molecule_info(ALR_type, mol, prediction):
     inchi = Chem.MolToInchi(mol)
 
     if ALR_type == "ALR1": 
-        efficiency = "Effective" if (prediction * 100) >= 50 else "Not Effective"
+        efficiency = "Effective" if (prediction * 100) >= 56.45 else "Not Effective"
     if ALR_type == "ALR2": 
         efficiency = determine_efficiency(prediction, 100)
 
