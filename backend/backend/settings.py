@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-j=k=v3wkwb*sqoi01+y&!a3d53=$gp1z)c%90ep13xo%6$&p37')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['49.12.65.96', 'localhost', '127.0.0.1', 'backend', 'nginx']
+ALLOWED_HOSTS = ['49.13.213.187', 'localhost', '127.0.0.1', 'backend', 'nginx']
 INSTALLED_APPS = [
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -51,8 +51,8 @@ TEMPLATES = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    "http://49.12.65.96:3000",
-    "https://49.12.65.96:3000",
+    "http://49.13.213.187:3000",
+    "https://49.13.213.187:3000",
     "http://localhost:3000",
     "http://localhost:5173",
     "http://192.168.0.235:3000",
