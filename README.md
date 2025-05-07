@@ -101,7 +101,7 @@ To create a production-ready build of the frontend and serve it locally for test
 
 ## 🚀 Deployment
 
-The app is deployed on Hetzner's VPS on IP 49.12.65.96. For deployment were used Dockerfiles on Frontend and Backend together with Nginx.
+The app is deployed on Hetzner's VPS on IP 49.13.213.187. For deployment were used Dockerfiles on Frontend and Backend together with Nginx.
 See docker-compose.yml file in the root folder.
 
    ```sh
