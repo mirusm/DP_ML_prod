@@ -151,6 +151,19 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           <LogOut className="h-6 w-6 text-white" />
           <span className="text-white">Logout</span>
         </button>
+        <div className="flex flex-col items-start pt-2">
+          <img
+            src="/plan_obnovy.jpg" 
+            alt="Plan obnovy logo"
+            className="h-6 sm:h-8 w-auto mb-2"
+          />
+          <p className="text-[10px] sm:text-xs">
+            Názov projektu: Verejná platforma na predikciu toxických látok
+          </p>
+          <p className="text-[10px] sm:text-xs">
+            Kód projektu: 09I05-03-V02-00048
+          </p>
+        </div>
       </div>
     </aside>
   );

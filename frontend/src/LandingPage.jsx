@@ -81,8 +81,25 @@ const LandingPage = () => {
         </div>
       </main>
 
-      <footer className="bg-blue-600 text-white text-center py-3 sm:py-4 text-xs sm:text-sm font-bold">
-        © 2025 TP15 - DIACOMP. All rights reserved.
+      <footer className="bg-blue-600 text-white py-3 sm:py-4 text-[10px] sm:text-xs font-bold">
+        <div className="container mx-auto flex flex-col sm:flex-row justify-between items-start sm:items-center">
+          <div className="flex flex-col items-start mb-3 sm:mb-0">
+            <img
+              src="/plan_obnovy.jpg"
+              alt="Plan obnovy logo"
+              className="h-8 sm:h-10 w-auto mb-2"
+            />
+            <p className="text-[10px] sm:text-xs">
+              Názov projektu: Verejná platforma na predikciu toxických látok
+            </p>
+            <p className="text-[10px] sm:text-xs">
+              Kód projektu: 09I05-03-V02-00048
+            </p>
+          </div>
+          <p className="text-[10px] sm:text-xs text-center sm:text-right">
+            © 2025 TP15 - DIACOMP. All rights reserved.
+          </p>
+        </div>
       </footer>
     </div>
   );
