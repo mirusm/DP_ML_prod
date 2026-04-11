@@ -38,7 +38,7 @@ const InfoPage = () => {
         >
           <ol className="list-none p-0 inline-flex">
             <li className="flex items-center">
-              <span className={`${isDarkMode ? "text-gray-200" : "text-gray-800"}`}>Tooltip</span>
+              <span className={`${isDarkMode ? "text-gray-200" : "text-gray-800"}`}>About Project</span>
             </li>
           </ol>
         </nav>
@@ -48,7 +48,7 @@ const InfoPage = () => {
               isDarkMode ? "text-gray-200" : "text-gray-800"
             }`}
           >
-            Tooltip
+            About Project
           </h1>
         </header>
 

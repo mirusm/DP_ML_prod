@@ -66,7 +66,7 @@ createRoot(document.getElementById('root')).render(
             }
           />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/tooltip" element={<InfoPage />} />
+          <Route path="/about" element={<InfoPage />} />
 
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

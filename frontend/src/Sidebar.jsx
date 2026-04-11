@@ -94,14 +94,14 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           <span className="text-white">My predictions</span>
         </Link>
         <Link
-          to="/tooltip"
+          to="/about"
           className={`flex items-center space-x-2 p-2 rounded ${
             isDarkMode ? "hover:bg-gray-700" : "hover:bg-blue-700"
           }`}
           onClick={() => setIsOpen(false)}
         >
           <Info className="h-6 w-6 text-white" />
-          <span className="text-white">Tooltip</span>
+          <span className="text-white">About Project</span>
         </Link>
       </nav>
 
