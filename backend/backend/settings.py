@@ -60,6 +60,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://192.168.0.235:3000",
 ]
 
+CSRF_TRUSTED_ORIGINS = ["http://49.13.213.187:8080", "https://49.13.213.187:8080"]
+
 CORS_ALLOW_HEADERS = list(default_headers) + [
     'User-Id',
     'Email'
