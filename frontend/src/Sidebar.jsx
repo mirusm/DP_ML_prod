@@ -81,7 +81,17 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           onClick={() => setIsOpen(false)}
         >
           <Microscope className="h-6 w-6 text-white" />
-          <span className="text-white">New prediction</span>
+          <span className="text-white">New prediction ALR1/ALR2</span>
+        </Link>
+        <Link
+          to="/new-prediction-akrc"
+          className={`flex items-center space-x-2 p-2 rounded ${
+            isDarkMode ? "hover:bg-gray-700" : "hover:bg-blue-700"
+          }`}
+          onClick={() => setIsOpen(false)}
+        >
+          <Microscope className="h-6 w-6 text-white" />
+          <span className="text-white">New prediction AKR1C</span>
         </Link>
         <Link
           to="/my-predictions"

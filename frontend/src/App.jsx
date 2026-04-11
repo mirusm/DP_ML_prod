@@ -5,6 +5,7 @@ import SignUpPage from "./SignUpPage";
 import ForgotPasswordPage from "./ForgotPasswordPage";
 import DashboardPage from "./DashboardPage";
 import NewPredictionPage from "./NewPredictionPage";
+import NewPredictionAkrPage from "./NewPredictionAkrPage";
 import HistoryPage from "./HistoryPage";
 import ResultsPage from "./ResultsPage";
 import { AuthProvider } from './contexts/AuthContext'; 
@@ -33,6 +34,14 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <NewPredictionPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/new-prediction-akrc"
+            element={
+              <ProtectedRoute>
+                <NewPredictionAkrPage />
               </ProtectedRoute>
             }
           />

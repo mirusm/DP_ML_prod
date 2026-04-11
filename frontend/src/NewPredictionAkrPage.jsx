@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -8,19 +8,25 @@ import { collection, addDoc } from "firebase/firestore";
 import { db } from "./firebase/firebase";
 import { Menu } from "lucide-react";
 
-const NewPredictionPage = ({ onResults }) => {
+const AKR_MODEL_OPTIONS = [
+  { value: "AKR1C1", label: "AKR1C1" },
+  { value: "AKR1C2", label: "AKR1C2" },
+  { value: "AKR1C3", label: "AKR1C3" },
+  { value: "ALL", label: "All AKR1C enzymes" },
+];
+
+const NewPredictionAkrPage = ({ onResults }) => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { currentUser } = useAuth();
   const [inputType, setInputType] = useState("SMILES");
+  const [selectedModel, setSelectedModel] = useState("AKR1C1");
   const [smiles, setSmiles] = useState("");
   const [cas, setCas] = useState("");
   const [pipelineEntries, setPipelineEntries] = useState([]);
-  const [errorMessage, setErrorMessage] = useState("");
   const [isRunning, setIsRunning] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    return localStorage.getItem('theme') === 'dark';
+    return localStorage.getItem("theme") === "dark";
   });
   const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
 
@@ -29,8 +35,8 @@ const NewPredictionPage = ({ onResults }) => {
       setIsDarkMode(e.detail.isDark);
     };
 
-    window.addEventListener('themeChanged', handleThemeChange);
-    return () => window.removeEventListener('themeChanged', handleThemeChange);
+    window.addEventListener("themeChanged", handleThemeChange);
+    return () => window.removeEventListener("themeChanged", handleThemeChange);
   }, []);
 
   const handleInputTypeChange = (e) => {
@@ -38,7 +44,7 @@ const NewPredictionPage = ({ onResults }) => {
     setInputType(newInputType);
     if (newInputType === "SMILES") {
       setCas("");
-    } else if (newInputType === "CAS") {
+    } else {
       setSmiles("");
     }
   };
@@ -57,11 +63,12 @@ const NewPredictionPage = ({ onResults }) => {
       smiles: inputType === "SMILES" ? smiles : "",
       cas: inputType === "CAS" ? cas : "",
       type: inputType,
+      model: selectedModel,
     };
+
     setPipelineEntries([entry, ...pipelineEntries]);
     setSmiles("");
     setCas("");
-    setErrorMessage("");
   };
 
   const handleKeyDown = (e) => {
@@ -70,9 +77,15 @@ const NewPredictionPage = ({ onResults }) => {
     }
   };
 
+  const formatModelLabel = (modelName) => {
+    if (modelName === "ALL") {
+      return "All AKR1C enzymes";
+    }
+    return modelName;
+  };
+
   const handleDelete = (index) => {
-    const updatedEntries = pipelineEntries.filter((_, i) => i !== index);
-    setPipelineEntries(updatedEntries);
+    setPipelineEntries((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleRun = async () => {
@@ -86,13 +99,12 @@ const NewPredictionPage = ({ onResults }) => {
       return;
     }
 
-    setErrorMessage("");
     setIsRunning(true);
 
     try {
-      let allResults = [];
+      const allResults = [];
       for (const entry of pipelineEntries) {
-        const response = await fetch(`${API_URL}/upload/`, {
+        const response = await fetch(`${API_URL}/upload-akrc/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -102,12 +114,12 @@ const NewPredictionPage = ({ onResults }) => {
             smiles: entry.smiles.trim() || "",
             cas: entry.cas.trim() || "",
             inputType: entry.type,
+            model_name: entry.model,
           }),
         });
 
         if (!response.ok) {
           const text = await response.text();
-          console.error("API error response:", text);
           let errorMessage = "An error occurred";
           try {
             const errorObj = JSON.parse(text);
@@ -122,62 +134,43 @@ const NewPredictionPage = ({ onResults }) => {
         allResults.push(data);
       }
 
-      const formattedResults = allResults.flatMap((result) => [
-        {
+      const formattedResults = allResults.flatMap((result) =>
+        Object.entries(result).map(([modelName, payload]) => ({
           date: new Date(),
-          smiles: result.ALR2?.smiles || "",
-          cas: result.ALR2?.cas || "",
-          prediction: result.ALR2?.info?.prediction || 0,
-          efficiency: result.ALR2?.info?.efficiency || "N/A",
-          numHeavyAtoms: result.ALR2?.properties?.num_heavy_atoms || 0,
-          molecule_image: result.ALR2?.molecule_image || "",
-          descriptors: result.ALR2?.descriptors || {},
-          properties: result.ALR2?.properties || {},
-          shap_plot: result.ALR2?.shap_plot || "",
-          info: result.ALR2?.info || {},
-          model_name: "ALR2",
-          formula: result.ALR2?.info?.formula || "",
-          iupac_name: result.ALR2?.info?.iupac_name || "",
-        },
-        {
-          date: new Date(),
-          smiles: result.ALR1?.smiles || "",
-          cas: result.ALR1?.cas || "",
-          prediction: result.ALR1?.info?.prediction || 0,
-          efficiency: result.ALR1?.info?.efficiency || "N/A",
-          numHeavyAtoms: result.ALR1?.properties?.num_heavy_atoms || 0,
-          molecule_image: result.ALR1?.molecule_image || "",
-          descriptors: result.ALR1?.descriptors || {},
-          properties: result.ALR1?.properties || {},
-          shap_plot: result.ALR1?.shap_plot || "",
-          info: result.ALR1?.info || {},
-          model_name: "ALR1",
-          formula: result.ALR1?.info?.formula || "",
-          iupac_name: result.ALR1?.info?.iupac_name || "",
-        },
-      ]);
+          smiles: payload?.smiles || "",
+          cas: payload?.cas || "",
+          prediction: payload?.info?.prediction || 0,
+          efficiency: payload?.info?.efficiency || "N/A",
+          numHeavyAtoms: payload?.properties?.num_heavy_atoms || 0,
+          molecule_image: payload?.molecule_image || "",
+          descriptors: payload?.descriptors || {},
+          properties: payload?.properties || {},
+          shap_plot: payload?.shap_plot || "",
+          info: payload?.info || {},
+          model_name: modelName,
+          formula: payload?.info?.formula || "",
+          iupac_name: payload?.info?.iupac_name || "",
+        }))
+      );
 
       const predictionsRef = collection(db, `users/${currentUser.uid}/predictions`);
       for (const result of formattedResults) {
         await addDoc(predictionsRef, result);
       }
 
-      toast.success("Predictions saved successfully!");
+      toast.success("AKR predictions saved successfully!");
 
       if (onResults) {
         onResults(formattedResults);
       }
 
-      navigate("/results", { state: { results: formattedResults, origin: "new-prediction" } });
+      navigate("/results", { state: { results: formattedResults, origin: "new-prediction-akrc" } });
     } catch (error) {
       let errorMessage = error.message || "An error occurred while processing your request.";
-      if (error.message.includes("net::ERR_CONNECTION_REFUSED")) {
+      if (error.message.includes("ERR_CONNECTION_REFUSED")) {
         errorMessage = "Cannot connect to the backend server. Ensure the Django server is running on port 8000.";
-      } else if (error.message.includes("500")) {
-        errorMessage = "Backend server error. Check Django server logs for details.";
       }
       toast.error(errorMessage);
-      setErrorMessage(errorMessage);
     } finally {
       setIsRunning(false);
     }
@@ -205,18 +198,19 @@ const NewPredictionPage = ({ onResults }) => {
           <ol className="list-none p-0 inline-flex">
             <li className="flex items-center">
               <span className={`${isDarkMode ? "text-gray-200" : "text-gray-800"}`}>
-                New prediction ALR1/ALR2
+                New prediction AKR1C
               </span>
             </li>
           </ol>
         </nav>
+
         <header className="flex justify-between items-center mb-6">
           <h1
             className={`text-xl sm:text-2xl font-bold ${
               isDarkMode ? "text-gray-200" : "text-gray-800"
             }`}
           >
-            New prediction ALR1/ALR2
+            New prediction AKR1C
           </h1>
         </header>
 
@@ -225,8 +219,8 @@ const NewPredictionPage = ({ onResults }) => {
             isDarkMode ? "bg-gray-800 text-gray-300" : "bg-white"
           }`}
         >
-          <div className="flex flex-col sm:flex-row sm:items-end space-y-4 sm:space-y-0 sm:space-x-4">
-            <div className="w-full sm:w-48">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div>
               <label className="block text-sm font-medium mb-2">Input type</label>
               <select
                 className={`h-11 w-full p-2 border rounded cursor-pointer ${
@@ -241,7 +235,27 @@ const NewPredictionPage = ({ onResults }) => {
                 <option>CAS</option>
               </select>
             </div>
-            <div className="flex-1">
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Enzyme</label>
+              <select
+                className={`h-11 w-full p-2 border rounded cursor-pointer ${
+                  isDarkMode
+                    ? "bg-gray-700 border-gray-600 text-gray-300"
+                    : "bg-white border-gray-300 text-gray-900"
+                }`}
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+              >
+                {AKR_MODEL_OPTIONS.map((model) => (
+                  <option key={model.value} value={model.value}>
+                    {model.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium mb-2">{inputType} code:</label>
               <input
                 type="text"
@@ -258,21 +272,14 @@ const NewPredictionPage = ({ onResults }) => {
                 }`}
               />
             </div>
-            <div className="w-full sm:w-32 self-start">
-              <label
-                htmlFor="add-text"
-                className="text-sm font-medium mb-2 block text-transparent"
-              >
-                Add
-              </label>
-            <button
-              onClick={handleAdd}
-              className="bg-blue-600 text-white px-5 py-3 rounded text-sm hover:bg-blue-700 mt-6 sm:mt-0 sm:self-end"
-            >
-              Add
-            </button>
-            </div>
           </div>
+
+          <button
+            onClick={handleAdd}
+            className="bg-blue-600 text-white px-5 py-3 rounded text-sm hover:bg-blue-700 mt-4"
+          >
+            Add
+          </button>
         </div>
 
         <div
@@ -285,8 +292,9 @@ const NewPredictionPage = ({ onResults }) => {
               isDarkMode ? "text-gray-200" : "text-gray-800"
             }`}
           >
-            Run pipeline
+            Run AKRC pipeline
           </h2>
+
           {isRunning ? (
             <div className="text-center py-4">
               <div className="modern-mouse-container">
@@ -306,21 +314,25 @@ const NewPredictionPage = ({ onResults }) => {
                   isDarkMode ? "bg-gray-800 text-gray-300" : "bg-white"
                 }`}
               >
-                <thead
-                  className={`sticky top-0 ${isDarkMode ? "bg-gray-700" : "bg-gray-100"}`}
-                >
+                <thead className={`sticky top-0 ${isDarkMode ? "bg-gray-700" : "bg-gray-100"}`}>
                   <tr>
+                    <th className="p-2 text-xs sm:text-sm font-medium">Enzyme</th>
                     <th className="p-2 text-xs sm:text-sm font-medium">SMILES code</th>
-                    <th className="p-2 text-xs sm:text-sm font-medium hidden sm:table-cell">
-                      CAS code
-                    </th>
+                    <th className="p-2 text-xs sm:text-sm font-medium hidden sm:table-cell">CAS code</th>
                     <th className="p-2 text-xs sm:text-sm font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-300 dark:divide-gray-600">
                   {pipelineEntries.map((entry, index) => (
                     <tr key={index}>
-                      <td className="p-2 text-sm">{entry.smiles || "-"}</td>
+                      <td className="p-2 text-sm">
+                        <span className="inline-flex items-center rounded-full bg-blue-600 px-2.5 py-1 text-xs font-semibold text-white">
+                          {formatModelLabel(entry.model)}
+                        </span>
+                      </td>
+                      <td className="p-2 text-sm">
+                        <div>{entry.smiles || "-"}</div>
+                      </td>
                       <td className="p-2 text-sm hidden sm:table-cell">{entry.cas || "-"}</td>
                       <td className="p-2">
                         <button
@@ -336,18 +348,17 @@ const NewPredictionPage = ({ onResults }) => {
               </table>
             </div>
           )}
+
           <button
             onClick={handleRun}
             disabled={isRunning}
             className={`mt-4 w-full sm:w-auto text-white px-4 py-2 rounded text-base sm:text-lg transition duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 min-w-[100px] ${
-              isRunning
-                ? "bg-gray-400 cursor-not-allowed opacity-50"
-                : "bg-green-600 hover:bg-green-700"
+              isRunning ? "bg-gray-400 cursor-not-allowed opacity-50" : "bg-green-600 hover:bg-green-700"
             }`}
-            title={isRunning ? "Processing, please wait..." : "Run the prediction pipeline"}
           >
             {isRunning ? "Running..." : "Run"}
           </button>
+
         </div>
       </main>
       <ToastContainer closeButton={false} theme={isDarkMode ? "dark" : "light"} />
@@ -355,4 +366,4 @@ const NewPredictionPage = ({ onResults }) => {
   );
 };
 
-export default NewPredictionPage;
+export default NewPredictionAkrPage;

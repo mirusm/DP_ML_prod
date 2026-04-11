@@ -13,6 +13,37 @@ import matplotlib.pyplot as plt
 import joblib
 import requests
 import re
+import sys
+
+
+class AKR1C1RFModel:
+    """Compatibility wrapper for legacy pickles saved from __main__."""
+
+    def __init__(self, model=None):
+        self.model = model
+
+
+class AKR1C2RFModel(AKR1C1RFModel):
+    """Compatibility alias for legacy AKR1C2 pickles saved from __main__."""
+
+
+class AKR1C3XGBModel(AKR1C1RFModel):
+    """Compatibility alias for legacy AKR1C3 pickles saved from __main__."""
+
+
+def load_model_with_compat(model_path):
+    """Load pickles that reference legacy __main__ AKR wrapper classes."""
+    main_module = sys.modules.get("__main__")
+    if main_module is not None:
+        legacy_classes = {
+            "AKR1C1RFModel": AKR1C1RFModel,
+            "AKR1C2RFModel": AKR1C2RFModel,
+            "AKR1C3XGBModel": AKR1C3XGBModel,
+        }
+        for class_name, class_object in legacy_classes.items():
+            if not hasattr(main_module, class_name):
+                setattr(main_module, class_name, class_object)
+    return joblib.load(model_path)
 
 def load_dataset(file_path):
     try:
@@ -162,11 +193,11 @@ def predict_xgboost(smiles, model_path, train_data_path):
         desc_df = desc_df[REQUIRED_FEATURES]
         model = joblib.load(model_path)
         train_data = pd.read_csv(train_data_path)[REQUIRED_FEATURES]
-        pred_proba = model.predict_proba(desc_df.values)[0]
+        pred_proba = model.predict_proba(desc_df)[0]
         confidence_score = round(pred_proba[1], 5)
         background_data = train_data.sample(n=30, random_state=42)
         explainer = shap.TreeExplainer(model, data=background_data, model_output="probability")
-        shap_values = explainer.shap_values(desc_df.values)
+        shap_values = explainer.shap_values(desc_df)
         matplotlib.use('Agg')
         importance = np.abs(shap_values).mean(axis=0)
         feature_importance = pd.DataFrame({
@@ -267,6 +298,88 @@ def predict_svr(smiles, model_path, train_data_path):
     
     return (mol, pred_value, important_descriptors, "Prediction successful", encoded_top_10)
 
+def predict_classifier(smiles, model_path, train_data_path, required_features):
+    try:
+        df = pd.DataFrame({"SMILES": [smiles]})
+        desc_df = getDescriptorsP(df, missing_value=0)
+
+        missing_features = [f for f in required_features if f not in desc_df.columns]
+        if missing_features:
+            return None, None, None, f"Missing features: {missing_features}", None
+
+        desc_df = desc_df[required_features]
+        loaded_model = load_model_with_compat(model_path)
+        if hasattr(loaded_model, "predict_proba"):
+            model = loaded_model
+        elif hasattr(loaded_model, "model") and hasattr(loaded_model.model, "predict_proba"):
+            model = loaded_model.model
+        else:
+            return None, None, None, "Loaded model does not support predict_proba", None
+        train_data = pd.read_csv(train_data_path)[required_features]
+
+        pred_proba = model.predict_proba(desc_df)[0]
+        confidence_score = round(float(pred_proba[1]), 5)
+
+        background_data = train_data.sample(n=min(30, len(train_data)), random_state=42)
+        explainer = shap.TreeExplainer(model, data=background_data, model_output="probability")
+        shap_values_raw = explainer.shap_values(desc_df)
+
+        if isinstance(shap_values_raw, list):
+            class_index = 1 if len(shap_values_raw) > 1 else 0
+            sample_shap = np.array(shap_values_raw[class_index][0])
+            expected_raw = explainer.expected_value
+            expected_value = (
+                expected_raw[class_index]
+                if isinstance(expected_raw, (list, tuple, np.ndarray))
+                else expected_raw
+            )
+        else:
+            shap_arr = np.array(shap_values_raw)
+            if shap_arr.ndim == 3 and shap_arr.shape[-1] > 1:
+                sample_shap = shap_arr[0, :, 1]
+                expected_raw = explainer.expected_value
+                expected_value = (
+                    expected_raw[1]
+                    if isinstance(expected_raw, (list, tuple, np.ndarray))
+                    else expected_raw
+                )
+            else:
+                sample_shap = shap_arr[0]
+                expected_value = explainer.expected_value
+
+        importance = np.abs(sample_shap)
+        feature_importance = pd.DataFrame({
+            "Feature": required_features,
+            "Importance": importance
+        }).sort_values(by="Importance", ascending=False)
+
+        top_10_features = feature_importance['Feature'].head(10).tolist()
+        top_10_indices = [required_features.index(f) for f in top_10_features]
+
+        encoded_top_10 = generate_shap_waterfall_plot(
+            shap_values=sample_shap[top_10_indices],
+            expected_value=expected_value,
+            data=desc_df.iloc[0][top_10_features],
+            feature_names=top_10_features,
+            max_display=10
+        )
+        if encoded_top_10 is None:
+            return None, None, None, "Failed to generate SHAP plot", None
+
+        important_descriptors = {
+            feature: {
+                'value': float(desc_df[feature].iloc[0]),
+                'importance': float(feature_importance[feature_importance['Feature'] == feature]['Importance'].iloc[0])
+            }
+            for feature in top_10_features
+        }
+
+        mol = Chem.MolFromSmiles(smiles)
+        return (mol, confidence_score, important_descriptors, "Prediction successful", encoded_top_10)
+
+    except Exception as e:
+        return None, None, None, f"Prediction failed: {str(e)}", None
+
 # Visualize a molecule without the SMILES string
 def visualize_molecule_withoutSmiles(mol):
     if not mol:
@@ -345,6 +458,8 @@ def get_molecule_info(ALR_type, mol, prediction):
         efficiency = "Effective" if (prediction * 100) >= 56.45 else "Not Effective"
     if ALR_type == "ALR2": 
         efficiency = determine_efficiency(prediction, 100)
+    if ALR_type in ("AKR1C1", "AKR1C2", "AKR1C3"):
+        efficiency = "Effective" if (prediction * 100) >= 56.45 else "Not Effective"
 
     info = {
         "formula": formula,

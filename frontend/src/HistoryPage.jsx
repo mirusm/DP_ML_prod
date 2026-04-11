@@ -22,6 +22,7 @@ import { Menu } from "lucide-react";
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const HistoryPage = () => {
+  const CLASSIFICATION_MODELS = ["ALR1", "AKR1C1", "AKR1C2", "AKR1C3"];
   const [predictions, setPredictions] = useState([]);
   const [filteredPredictions, setFilteredPredictions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,6 +37,9 @@ const HistoryPage = () => {
   const rowsPerPage = 9;
   const navigate = useNavigate();
   const { currentUser, authLoading } = useAuth();
+
+  const isClassificationModel = (modelName) =>
+    CLASSIFICATION_MODELS.includes((modelName || "").toUpperCase());
 
   useEffect(() => {
     const handleThemeChange = (e) => {
@@ -228,13 +232,42 @@ const HistoryPage = () => {
       })
       .filter((val) => !isNaN(val));
 
-    const allValues = [...alr1Values, ...alr2Values];
+    const akr1c1Values = filteredPredictions
+      .filter((item) => item.model_name === "AKR1C1")
+      .map((item) => {
+        const value = typeof item.prediction === "number" ? item.prediction : parseFloat(item.prediction);
+        return isNaN(value) ? NaN : Number(value.toFixed(2));
+      })
+      .filter((val) => !isNaN(val));
+
+    const akr1c2Values = filteredPredictions
+      .filter((item) => item.model_name === "AKR1C2")
+      .map((item) => {
+        const value = typeof item.prediction === "number" ? item.prediction : parseFloat(item.prediction);
+        return isNaN(value) ? NaN : Number(value.toFixed(2));
+      })
+      .filter((val) => !isNaN(val));
+
+    const akr1c3Values = filteredPredictions
+      .filter((item) => item.model_name === "AKR1C3")
+      .map((item) => {
+        const value = typeof item.prediction === "number" ? item.prediction : parseFloat(item.prediction);
+        return isNaN(value) ? NaN : Number(value.toFixed(2));
+      })
+      .filter((val) => !isNaN(val));
+
+    const allValues = [...alr1Values, ...alr2Values, ...akr1c1Values, ...akr1c2Values, ...akr1c3Values];
 
     const alr1Color = isDarkMode ? "rgba(255, 255, 255, 0.8)" : "rgb(1, 217, 255)";
     const alr1Border = isDarkMode ? "rgb(100, 64, 64)" : "rgb(1, 217, 255)";
     const alr2Color = isDarkMode ? "rgba(0, 0, 0, 0.8)" : "rgba(3, 0, 185, 0.8)";
     const alr2Border = isDarkMode ? "rgb(0, 0, 0)" : "rgba(3, 0, 185, 0.8)";
-    const textColor = isDarkMode ? "#FFFFFF" : "#374151";
+    const akr1c1Color = isDarkMode ? "rgba(34, 197, 94, 0.8)" : "rgba(22, 163, 74, 0.8)";
+    const akr1c1Border = isDarkMode ? "rgb(22, 101, 52)" : "rgb(21, 128, 61)";
+    const akr1c2Color = isDarkMode ? "rgba(249, 115, 22, 0.8)" : "rgba(234, 88, 12, 0.8)";
+    const akr1c2Border = isDarkMode ? "rgb(154, 52, 18)" : "rgb(194, 65, 12)";
+    const akr1c3Color = isDarkMode ? "rgba(168, 85, 247, 0.8)" : "rgba(147, 51, 234, 0.8)";
+    const akr1c3Border = isDarkMode ? "rgb(107, 33, 168)" : "rgb(126, 34, 206)";
 
     if (allValues.length === 0) {
       return {
@@ -252,6 +285,27 @@ const HistoryPage = () => {
             data: [0],
             backgroundColor: alr2Color,
             borderColor: alr2Border,
+            borderWidth: 1,
+          },
+          {
+            label: "AKR1C1",
+            data: [0],
+            backgroundColor: akr1c1Color,
+            borderColor: akr1c1Border,
+            borderWidth: 1,
+          },
+          {
+            label: "AKR1C2",
+            data: [0],
+            backgroundColor: akr1c2Color,
+            borderColor: akr1c2Border,
+            borderWidth: 1,
+          },
+          {
+            label: "AKR1C3",
+            data: [0],
+            backgroundColor: akr1c3Color,
+            borderColor: akr1c3Border,
             borderWidth: 1,
           },
         ],
@@ -285,17 +339,35 @@ const HistoryPage = () => {
       return `${start.toFixed(2)}-${end.toFixed(2)}`;
     });
 
-    const alr1Counts = Array(10).fill(0);
-    const alr2Counts = Array(10).fill(0);
+    const alr1Counts = Array(numBins).fill(0);
+    const alr2Counts = Array(numBins).fill(0);
+    const akr1c1Counts = Array(numBins).fill(0);
+    const akr1c2Counts = Array(numBins).fill(0);
+    const akr1c3Counts = Array(numBins).fill(0);
 
     alr1Values.forEach((value) => {
-      const binIndex = Math.min(Math.floor((value - minValue) / binSize), 9);
+      const binIndex = Math.min(Math.floor((value - minValue) / binSize), numBins - 1);
       alr1Counts[binIndex]++;
     });
 
     alr2Values.forEach((value) => {
-      const binIndex = Math.min(Math.floor((value - minValue) / binSize), 9);
+      const binIndex = Math.min(Math.floor((value - minValue) / binSize), numBins - 1);
       alr2Counts[binIndex]++;
+    });
+
+    akr1c1Values.forEach((value) => {
+      const binIndex = Math.min(Math.floor((value - minValue) / binSize), numBins - 1);
+      akr1c1Counts[binIndex]++;
+    });
+
+    akr1c2Values.forEach((value) => {
+      const binIndex = Math.min(Math.floor((value - minValue) / binSize), numBins - 1);
+      akr1c2Counts[binIndex]++;
+    });
+
+    akr1c3Values.forEach((value) => {
+      const binIndex = Math.min(Math.floor((value - minValue) / binSize), numBins - 1);
+      akr1c3Counts[binIndex]++;
     });
 
     return {
@@ -313,6 +385,27 @@ const HistoryPage = () => {
           data: alr2Counts,
           backgroundColor: alr2Color,
           borderColor: alr2Border,
+          borderWidth: 1,
+        },
+        {
+          label: "AKR1C1",
+          data: akr1c1Counts,
+          backgroundColor: akr1c1Color,
+          borderColor: akr1c1Border,
+          borderWidth: 1,
+        },
+        {
+          label: "AKR1C2",
+          data: akr1c2Counts,
+          backgroundColor: akr1c2Color,
+          borderColor: akr1c2Border,
+          borderWidth: 1,
+        },
+        {
+          label: "AKR1C3",
+          data: akr1c3Counts,
+          backgroundColor: akr1c3Color,
+          borderColor: akr1c3Border,
           borderWidth: 1,
         },
       ],
@@ -763,7 +856,7 @@ const HistoryPage = () => {
                           {item.cas || "-"}
                         </td>
                         <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm">
-                          {item.model_name === "ALR1"
+                          {isClassificationModel(item.model_name)
                             ? `${(item.prediction * 100).toFixed(2)}%`
                             : Number(item.prediction).toFixed(2)}
                         </td>

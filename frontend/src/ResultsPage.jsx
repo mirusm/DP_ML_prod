@@ -5,6 +5,15 @@ import PropertyDisplay from "./PropertyDisplay";
 import { Menu } from "lucide-react";
 
 const ResultPage = () => {
+  const CLASSIFICATION_MODELS = ["ALR1", "AKR1C1", "AKR1C2", "AKR1C3"];
+  const TAB_MODELS = ["ALR1", "ALR2", "AKR1C1", "AKR1C2", "AKR1C3"];
+  const TAB_LABELS = {
+    ALR1: "ALR1 Results",
+    ALR2: "ALR2 Results",
+    AKR1C1: "AKR1C1 Results",
+    AKR1C2: "AKR1C2 Results",
+    AKR1C3: "AKR1C3 Results",
+  };
   const location = useLocation();
   const results = location.state?.results || [];
   const singleResult = location.state && !location.state.results ? location.state : null;
@@ -24,6 +33,9 @@ const ResultPage = () => {
   });
   const resultsPerPage = 5;
   const navigate = useNavigate();
+
+  const isClassificationModel = (modelName) =>
+    CLASSIFICATION_MODELS.includes((modelName || "").toUpperCase());
 
   useEffect(() => {
     const handleThemeChange = (e) => {
@@ -79,9 +91,39 @@ const ResultPage = () => {
     predictedValue: result.predictedValue || result.prediction,
   }));
 
-  const alr2Results = normalizedResults.filter((result) => result.model.toUpperCase() === "ALR2");
-  const alr1Results = normalizedResults.filter((result) => result.model.toUpperCase() === "ALR1");
-  const currentResults = activeTab === "ALR1" ? alr1Results : alr2Results;
+  const availableModels = Array.from(
+    new Set(
+      normalizedResults
+        .map((result) => (result.model || "").toUpperCase())
+        .filter(Boolean)
+    )
+  );
+
+  const visibleTabModels = (() => {
+    if (origin.startsWith("new-prediction-akrc")) {
+      return availableModels.filter((model) => model.startsWith("AKR"));
+    }
+    if (origin === "new-prediction") {
+      return availableModels.filter((model) => model.startsWith("ALR"));
+    }
+    return TAB_MODELS.filter((model) => availableModels.includes(model));
+  })();
+
+  useEffect(() => {
+    if (selectedResult || normalizedResults.length === 0) return;
+    if (visibleTabModels.length > 0 && !visibleTabModels.includes(activeTab)) {
+      setActiveTab(visibleTabModels[0]);
+      setCurrentPage(1);
+    }
+  }, [activeTab, normalizedResults, selectedResult, visibleTabModels]);
+
+  const modelResults = visibleTabModels.reduce((acc, modelName) => {
+    acc[modelName] = normalizedResults.filter(
+      (result) => result.model.toUpperCase() === modelName
+    );
+    return acc;
+  }, {});
+  const currentResults = modelResults[activeTab] || [];
   const totalPages = Math.ceil(currentResults.length / resultsPerPage);
   const startIndex = (currentPage - 1) * resultsPerPage;
   const endIndex = startIndex + resultsPerPage;
@@ -132,7 +174,7 @@ const ResultPage = () => {
       Formula: selectedResult.info?.formula || "N/A",
       CAS: selectedResult.cas || "N/A",
       Prediction:
-      (selectedResult.model === "ALR1" || selectedResult.model_name === "ALR1")
+      isClassificationModel(selectedResult.model || selectedResult.model_name)
         ? `${formatNumber((selectedResult.predictedValue || selectedResult.prediction || 0) * 100)}%`
         : formatNumber(selectedResult.predictedValue || selectedResult.prediction || 0),
       Efficiency: selectedResult.efficiency || "N/A",
@@ -250,7 +292,7 @@ const ResultPage = () => {
 
   const getPredictionColorClass = (model, value) => {
     const val = value || 0;
-    if (model === "ALR1") {
+    if (isClassificationModel(model)) {
       if (val < 0.5645) return 'bg-red-500';
       if (val < 0.75) return 'bg-orange-500';
       if (val < 0.9) return 'bg-yellow-500';
@@ -412,7 +454,7 @@ const ResultPage = () => {
                         selectedResult.predictedValue || selectedResult.prediction
                       )}`}
                     >
-                      {(selectedResult.model === "ALR1" || selectedResult.model_name === "ALR1")
+                      {isClassificationModel(selectedResult.model || selectedResult.model_name)
                         ? `${formatNumber((selectedResult.predictedValue || selectedResult.prediction || 0) * 100)}%`
                         : formatNumber(selectedResult.predictedValue || selectedResult.prediction || 0)}
                     </div>
@@ -424,7 +466,7 @@ const ResultPage = () => {
                       {selectedResult.efficiency || "N/A"}
                     </p>
                     <p className={`font-semibold text-sm sm:text-base text-center ${isDarkMode ? "bg-gray-800" : "bg-white"}`}>
-                      {(selectedResult.model === "ALR1" || selectedResult.model_name === "ALR1")
+                      {isClassificationModel(selectedResult.model || selectedResult.model_name)
                         ? "(Confidence score)"
                         : "(Predicted value)"}
                     </p>
@@ -624,36 +666,24 @@ const ResultPage = () => {
         </h2>
 
         <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-2">
-          <button
-            className={`px-3 sm:px-4 py-2 rounded text-sm sm:text-base cursor-pointer ${
-              activeTab === "ALR1"
-                ? "bg-blue-600 text-white"
-                : isDarkMode
-                ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-            }`}
-            onClick={() => {
-              setActiveTab("ALR1");
-              setCurrentPage(1);
-            }}
-          >
-            ALR1 Results
-          </button>
-          <button
-            className={`px-3 sm:px-4 py-2 rounded text-sm sm:text-base cursor-pointer ${
-              activeTab === "ALR2"
-                ? "bg-blue-600 text-white"
-                : isDarkMode
-                ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-            }`}
-            onClick={() => {
-              setActiveTab("ALR2");
-              setCurrentPage(1);
-            }}
-          >
-            ALR2 Results
-          </button>
+          {visibleTabModels.map((modelName) => (
+            <button
+              key={modelName}
+              className={`px-3 sm:px-4 py-2 rounded text-sm sm:text-base cursor-pointer ${
+                activeTab === modelName
+                  ? "bg-blue-600 text-white"
+                  : isDarkMode
+                  ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+              }`}
+              onClick={() => {
+                setActiveTab(modelName);
+                setCurrentPage(1);
+              }}
+            >
+              {TAB_LABELS[modelName] || `${modelName} Results`}
+            </button>
+          ))}
         </div>
 
         <div className={`rounded-lg shadow p-4 sm:p-6 ${isDarkMode ? "bg-gray-800 text-gray-300" : "bg-white"}`}>
@@ -696,7 +726,7 @@ const ResultPage = () => {
                           {result.cas || "-"}
                         </td>
                         <td className="p-2 sm:p-3 text-xs sm:text-sm">
-                          {(result.model.toUpperCase() === "ALR1" || result.model_name?.toUpperCase() === "ALR1")
+                          {isClassificationModel(result.model || result.model_name)
                             ? `${formatNumber(result.predictedValue * 100)}%`
                             : formatNumber(result.predictedValue)}
                         </td>

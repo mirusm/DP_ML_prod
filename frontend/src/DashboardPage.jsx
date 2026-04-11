@@ -9,6 +9,7 @@ import { db } from "./firebase/firebase";
 import { Menu } from "lucide-react";
 
 const DashboardPage = () => {
+  const CLASSIFICATION_MODELS = ["ALR1", "AKR1C1", "AKR1C2", "AKR1C3"];
   const navigate = useNavigate();
   const { currentUser, loading: authLoading } = useAuth();
   const [predictions, setPredictions] = useState([]);
@@ -18,6 +19,9 @@ const DashboardPage = () => {
     return localStorage.getItem('theme') === 'dark';
   });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const isClassificationModel = (modelName) =>
+    CLASSIFICATION_MODELS.includes((modelName || "").toUpperCase());
 
   useEffect(() => {
     const handleThemeChange = (e) => {
@@ -245,7 +249,7 @@ const DashboardPage = () => {
                         {item.cas || "-"}
                       </td>
                       <td className="p-2 sm:p-3 text-xs sm:text-sm whitespace-nowrap">
-                        {item.model_name === "ALR1"
+                        {isClassificationModel(item.model_name)
                           ? `${(item.prediction * 100).toFixed(2)}%`
                           : Number(item.prediction).toFixed(2)}
                       </td>

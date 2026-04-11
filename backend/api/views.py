@@ -12,6 +12,7 @@ from .functions import (
     visualize_molecule_withoutSmiles,
     predict_xgboost,
     predict_svr,
+    predict_classifier,
     cas_to_smiles,
     get_molecular_properties,
     get_molecule_info,
@@ -22,6 +23,49 @@ from .functions import (
     cas_validation,
     find_iupac_in_dataset
 )
+
+AKR_MODELS = {
+    "AKR1C1": {
+        "model_path": "models/rf_model_akr1c1.pkl",
+        "train_data_path": "data/x_train_data_akr1c1.csv",
+        "required_features": [
+            'qed', 'FpDensityMorgan1', 'BCUT2D_MRLOW', 'PEOE_VSA1', 'PEOE_VSA10',
+            'PEOE_VSA11', 'PEOE_VSA12', 'PEOE_VSA13', 'PEOE_VSA14', 'PEOE_VSA2',
+            'PEOE_VSA4', 'PEOE_VSA8', 'SMR_VSA10', 'SMR_VSA7', 'SMR_VSA9',
+            'SlogP_VSA10', 'SlogP_VSA2', 'SlogP_VSA8', 'VSA_EState1', 'VSA_EState2',
+            'VSA_EState5', 'NumAromaticHeterocycles', 'NumHeterocycles', 'MolLogP',
+            'fr_Al_COO', 'fr_ArN', 'fr_Ar_COO', 'fr_Ar_OH', 'fr_COO', 'fr_C_O',
+            'fr_NH0', 'fr_NH1', 'fr_halogen', 'fr_nitro', 'fr_sulfone'
+        ]
+    },
+    "AKR1C2": {
+        "model_path": "models/rf_model_akr1c2.pkl",
+        "train_data_path": "data/x_train_data_akr1c2.csv",
+        "required_features": [
+            'MaxAbsEStateIndex', 'FpDensityMorgan1', 'BCUT2D_MWLOW', 'BCUT2D_CHGLO',
+            'AvgIpc', 'Kappa2', 'PEOE_VSA10', 'PEOE_VSA11', 'PEOE_VSA13', 'PEOE_VSA7',
+            'SMR_VSA10', 'SMR_VSA3', 'SMR_VSA7', 'SlogP_VSA10', 'SlogP_VSA2',
+            'SlogP_VSA3', 'SlogP_VSA5', 'SlogP_VSA8', 'EState_VSA6', 'NHOHCount',
+            'NumAliphaticHeterocycles', 'NumAromaticRings', 'MolLogP', 'fr_Al_COO',
+            'fr_Ar_COO', 'fr_COO', 'fr_C_O_noCOO', 'fr_NH1', 'fr_allylic_oxid',
+            'fr_aniline', 'fr_bicyclic', 'fr_ester', 'fr_ketone', 'fr_nitro',
+            'fr_para_hydroxylation'
+        ]
+    },
+    "AKR1C3": {
+        "model_path": "models/xgboost_model_akr1c3.pkl",
+        "train_data_path": "data/x_train_data_akr1c3.csv",
+        "required_features": [
+            'FpDensityMorgan1', 'BCUT2D_MWHI', 'BCUT2D_MWLOW', 'BCUT2D_LOGPLOW',
+            'AvgIpc', 'PEOE_VSA1', 'PEOE_VSA10', 'PEOE_VSA12', 'PEOE_VSA2', 'PEOE_VSA7',
+            'SMR_VSA3', 'SMR_VSA7', 'SlogP_VSA10', 'SlogP_VSA2', 'SlogP_VSA3',
+            'SlogP_VSA4', 'SlogP_VSA5', 'SlogP_VSA7', 'SlogP_VSA8', 'EState_VSA6',
+            'VSA_EState9', 'NHOHCount', 'NumAliphaticHeterocycles', 'NumAromaticRings',
+            'NumHeteroatoms', 'RingCount', 'MolLogP', 'fr_Al_COO', 'fr_Ar_COO', 'fr_COO',
+            'fr_NH1', 'fr_allylic_oxid', 'fr_aniline', 'fr_bicyclic', 'fr_para_hydroxylation'
+        ]
+    }
+}
 
 def home(request):
     return JsonResponse({"message": "Welcome to the Django API!"})
@@ -152,7 +196,7 @@ def upload_dataset(request):
                 cas=cas,
                 model_name="ALR2",
                 prediction=float(prediction_alr2),
-                efficiency=info_alr1.get('efficiency', 'N/A'),
+                efficiency=info_alr2.get('efficiency', 'N/A'),
                 molecule_image=mol_image_base64,
                 formula=info_alr2.get('formula', 'N/A'),
                 iupac_name=info_alr2.get('iupac_name', 'N/A'),
@@ -202,6 +246,135 @@ def upload_dataset(request):
                 "shap_plot": plot_top_alr1
             }
         }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({"error": f"Server error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+def upload_akr_dataset(request):
+    try:
+        smiles = request.data.get('smiles')
+        cas = request.data.get('cas')
+        inputType = request.data.get('inputType')
+        model_name = (request.data.get('model_name') or '').upper()
+        user_id = request.headers.get('User-Id')
+
+        if not user_id:
+            return Response({"error": "User ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not inputType or inputType not in ['SMILES', 'CAS']:
+            return Response({"error": "Invalid or missing inputType"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if model_name not in AKR_MODELS and model_name != "ALL":
+            return Response({"error": f"Model {model_name} is not configured"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if model_name == "ALL":
+            target_models = list(AKR_MODELS.keys())
+        else:
+            target_models = [model_name]
+
+        if inputType == 'CAS':
+            if not cas:
+                return Response({"error": "CAS code is required for CAS input"}, status=status.HTTP_400_BAD_REQUEST)
+            if not cas_validation(cas):
+                return Response({"error": "Invalid CAS number"}, status=status.HTTP_400_BAD_REQUEST)
+            smiles = cas_to_smiles(cas)
+            if not smiles or smiles == "N/A":
+                try:
+                    df = load_dataset("data/DATASET.xlsx")
+                    smiles = find_smiles_in_dataset(cas, df)
+                    if smiles == "N/A":
+                        return Response({"error": "CAS not found in dataset"}, status=status.HTTP_400_BAD_REQUEST)
+                except Exception as e:
+                    return Response({"error": f"Failed to load dataset: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:
+            if not smiles:
+                return Response({"error": "SMILES code is required for SMILES input"}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                cas = cirpy.resolve(smiles, "cas") or "N/A"
+                if cas == "N/A":
+                    try:
+                        df = load_dataset("data/DATASET.xlsx")
+                        cas = find_cas_in_dataset(smiles, df)
+                    except Exception:
+                        cas = "N/A"
+            except Exception:
+                cas = "N/A"
+
+        try:
+            mol = Chem.MolFromSmiles(smiles)
+            if mol is None:
+                return Response({"error": "Invalid SMILES string"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": f"SMILES parsing failed: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            mol_image_base64 = visualize_molecule_withoutSmiles(mol)
+        except Exception as e:
+            return Response({"error": f"Failed to visualize molecule: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        try:
+            iupac_name = resolve_iupac_from_smiles(smiles) or "N/A"
+        except Exception as e:
+            return Response({"error": f"Failed to resolve IUPAC name: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        response_payload = {}
+        history_entries = []
+
+        for current_model_name in target_models:
+            model_config = AKR_MODELS[current_model_name]
+            try:
+                pred_mol, prediction, descriptors, message, shap_plot = predict_classifier(
+                    smiles,
+                    model_path=model_config["model_path"],
+                    train_data_path=model_config["train_data_path"],
+                    required_features=model_config["required_features"],
+                )
+                if pred_mol is None:
+                    return Response({"error": message}, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                return Response({"error": f"{current_model_name} prediction failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            try:
+                info = get_molecule_info(current_model_name, pred_mol, prediction)
+                properties = get_molecular_properties(pred_mol)
+                info["iupac_name"] = iupac_name
+            except Exception as e:
+                return Response({"error": f"Failed to gather molecule info for {current_model_name}: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            response_payload[current_model_name] = {
+                "molecule_image": mol_image_base64,
+                "smiles": smiles,
+                "cas": cas,
+                "inputType": inputType,
+                "prediction": str(prediction),
+                "info": info,
+                "descriptors": descriptors,
+                "properties": properties,
+                "shap_plot": shap_plot,
+            }
+            history_entries.append({
+                "user_id": user_id,
+                "smiles": smiles,
+                "cas": cas,
+                "model_name": current_model_name,
+                "prediction": float(prediction),
+                "efficiency": info.get('efficiency', 'N/A'),
+                "molecule_image": mol_image_base64,
+                "formula": info.get('formula', 'N/A'),
+                "iupac_name": info.get('iupac_name', 'N/A'),
+                "properties": properties,
+                "descriptors": descriptors,
+                "shap_plot": shap_plot or ""
+            })
+
+        try:
+            for history_entry in history_entries:
+                PredictionHistory.objects.create(**history_entry)
+        except Exception as e:
+            return Response({"error": f"Failed to save prediction history: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(response_payload, status=status.HTTP_200_OK)
 
     except Exception as e:
         return Response({"error": f"Server error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

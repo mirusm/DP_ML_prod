@@ -11,6 +11,7 @@ import LandingPage from './LandingPage.jsx';
 import InfoPage from './InfoPage.jsx';
 import HistoryPage from './HistoryPage.jsx';
 import NewPredictionPage from './NewPredictionPage.jsx';
+import NewPredictionAkrPage from './NewPredictionAkrPage.jsx';
 import ResultsPage from './ResultsPage.jsx';
 import NotFoundPage from './NotFoundPage.jsx';
 import { AuthProvider } from './contexts/AuthContext'; 
@@ -46,6 +47,14 @@ createRoot(document.getElementById('root')).render(
             element={
               <ProtectedRoute>
                 <NewPredictionPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/new-prediction-akrc"
+            element={
+              <ProtectedRoute>
+                <NewPredictionAkrPage />
               </ProtectedRoute>
             }
           />
