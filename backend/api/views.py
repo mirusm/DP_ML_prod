@@ -113,21 +113,21 @@ def _classify_selectivity(p1, p2, p3, sel_map):
         compound_class = "uncertain"
 
     if (
-        ratio > 10
+        ratio > 5
         and p_target > 0.75
         and max_off < 0.25
     ):
         label = "highly selective"
 
     elif (
-        ratio > 5
+        ratio > 3
         and p_target > INHIBITION_THRESHOLD
         and max_off < OFF_TARGET_THRESHOLD
     ):
         label = "moderately selective"
 
     elif (
-        ratio > 2
+        ratio > 1.5
         and p_target > 0.5
     ):
         label = "weakly selective"
