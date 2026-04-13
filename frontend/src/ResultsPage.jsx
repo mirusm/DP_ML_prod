@@ -687,11 +687,11 @@ const ResultPage = () => {
     const ratio = pMap[topTarget] / (maxOff + 1e-6);
 
     let selectivityLabel = "non-selective";
-    if (ratio > 10 && pMap[topTarget] > 0.75 && maxOff < 0.25) {
+    if (ratio > 5 && pMap[topTarget] > 0.75 && maxOff < 0.25) {
       selectivityLabel = "highly selective";
-    } else if (ratio > 5 && pMap[topTarget] > INHIBITION_THRESHOLD && maxOff < OFF_TARGET_THRESHOLD) {
+    } else if (ratio > 3 && pMap[topTarget] > INHIBITION_THRESHOLD && maxOff < OFF_TARGET_THRESHOLD) {
       selectivityLabel = "moderately selective";
-    } else if (ratio > 2 && pMap[topTarget] > 0.5) {
+    } else if (ratio > 1.5 && pMap[topTarget] > 0.5) {
       selectivityLabel = "weakly selective";
     }
 
