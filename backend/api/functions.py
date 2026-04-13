@@ -459,7 +459,7 @@ def get_molecule_info(ALR_type, mol, prediction):
     if ALR_type == "ALR2": 
         efficiency = determine_efficiency(prediction, 100)
     if ALR_type in ("AKR1C1", "AKR1C2", "AKR1C3"):
-        efficiency = "Effective" if (prediction * 100) >= 56.45 else "Not Effective"
+        efficiency = determine_akr_efficiency_label(ALR_type, prediction)
 
     info = {
         "formula": formula,
@@ -475,4 +475,24 @@ def determine_efficiency(prediction, threshold):
         return "Not Effective"
     else:
         return "Effective"
+
+
+def determine_akr_efficiency_label(enzyme, prediction):
+    p = float(prediction)
+
+    thresholds = {
+        "AKR1C1": (0.42, 0.57, 0.77),
+        "AKR1C2": (0.20, 0.35, 0.55),
+        "AKR1C3": (0.10, 0.25, 0.45),
+    }
+
+    low, mid, high = thresholds.get(enzyme, (0.40, 0.55, 0.70))
+
+    if p < low:
+        return "Likely non-inhibitor"
+    if p < mid:
+        return "Uncertain"
+    if p < high:
+        return "Likely inhibitor"
+    return "High confidence inhibitor"
     

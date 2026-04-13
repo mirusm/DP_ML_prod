@@ -67,6 +67,153 @@ AKR_MODELS = {
     }
 }
 
+SELECTIVITY_THRESHOLD = 0.3
+INHIBITION_THRESHOLD = 0.65   
+OFF_TARGET_THRESHOLD = 0.35   
+NON_INHIBITOR_THRESHOLD = 0.6    
+PAN_INHIBITOR_MIN = 0.6     
+SELECTIVITY_CLASS_THRESHOLD = 0.3
+
+
+def _classify_selectivity(p1, p2, p3, sel_map):
+    eps = 1e-6
+
+    non_inhibitor_prob = (1 - p1) * (1 - p2) * (1 - p3)
+    pan_inhibitor_prob = p1 * p2 * p3
+
+    top_target = max(sel_map, key=sel_map.get)
+    top_prob = sel_map[top_target]
+
+    p_map = {"AKR1C1": p1, "AKR1C2": p2, "AKR1C3": p3}
+    p_target = p_map[top_target]
+
+    off_targets = ["AKR1C1", "AKR1C2", "AKR1C3"]
+    off_targets.remove(top_target)
+    p_off1 = p_map[off_targets[0]]
+    p_off2 = p_map[off_targets[1]]
+
+    max_off = max(p_off1, p_off2)
+
+    ratio = p_target / (max_off + eps)
+
+    if non_inhibitor_prob > NON_INHIBITOR_THRESHOLD:
+        compound_class = "non-inhibitor"
+
+    elif min(p1, p2, p3) > PAN_INHIBITOR_MIN:
+        compound_class = "pan-inhibitor"
+
+    elif (
+        top_prob > SELECTIVITY_CLASS_THRESHOLD
+        and p_target > INHIBITION_THRESHOLD
+    ):
+        compound_class = f"selective_{top_target}"
+
+    else:
+        compound_class = "uncertain"
+
+    if (
+        ratio > 10
+        and p_target > 0.75
+        and max_off < 0.25
+    ):
+        label = "highly selective"
+
+    elif (
+        ratio > 5
+        and p_target > INHIBITION_THRESHOLD
+        and max_off < OFF_TARGET_THRESHOLD
+    ):
+        label = "moderately selective"
+
+    elif (
+        ratio > 2
+        and p_target > 0.5
+    ):
+        label = "weakly selective"
+
+    else:
+        label = "non-selective"
+
+    return {
+        "compound_class": compound_class,
+        "selectivity_label": label,
+        "top_selective_target": top_target,
+        "top_selective_probability": round(float(top_prob), 5),
+        "multi_target_prob_all_3": round(float(pan_inhibitor_prob), 5),
+        "non_inhibitor_prob": round(float(non_inhibitor_prob), 5),
+        "selectivity_ratio": round(float(ratio), 5),   # 👈 NOVÉ
+    }
+
+
+def _build_selectivity_payload(smiles, cas, input_type, iupac_name, model_results):
+    p1 = float(model_results.get("AKR1C1", {}).get("prediction", 0.0))
+    p2 = float(model_results.get("AKR1C2", {}).get("prediction", 0.0))
+    p3 = float(model_results.get("AKR1C3", {}).get("prediction", 0.0))
+
+    sel_prob_akr1c1 = p1 * (1 - p2) * (1 - p3)
+    sel_prob_akr1c2 = p2 * (1 - p1) * (1 - p3)
+    sel_prob_akr1c3 = p3 * (1 - p1) * (1 - p2)
+
+    sel_map = {
+        "AKR1C1": sel_prob_akr1c1,
+        "AKR1C2": sel_prob_akr1c2,
+        "AKR1C3": sel_prob_akr1c3,
+    }
+
+    summary = _classify_selectivity(p1, p2, p3, sel_map)
+    top_target = summary["top_selective_target"]
+    inhibition_map = {
+        "AKR1C1": p1,
+        "AKR1C2": p2,
+        "AKR1C3": p3,
+    }
+    off_targets = [name for name in inhibition_map.keys() if name != top_target]
+    strongest_off_target = max(off_targets, key=lambda name: inhibition_map[name])
+
+    verdict = (
+        f"This compound is selective for {top_target}"
+        if summary["selectivity_label"] != "non-selective"
+        else "This compound is non-selective across AKR1C enzymes"
+    )
+
+    enzyme_rows = [
+        {
+            "enzyme": "AKR1C1",
+            "inhibition_probability": round(p1, 5),
+            "selectivity_probability": round(sel_prob_akr1c1, 5),
+        },
+        {
+            "enzyme": "AKR1C2",
+            "inhibition_probability": round(p2, 5),
+            "selectivity_probability": round(sel_prob_akr1c2, 5),
+        },
+        {
+            "enzyme": "AKR1C3",
+            "inhibition_probability": round(p3, 5),
+            "selectivity_probability": round(sel_prob_akr1c3, 5),
+        },
+    ]
+
+    return {
+        "smiles": smiles,
+        "cas": cas,
+        "inputType": input_type,
+        "info": {
+            "iupac_name": iupac_name,
+            "verdict": verdict,
+            "confidence_score": summary["top_selective_probability"],
+            "selectivity_label": summary["selectivity_label"],
+            "compound_class": summary["compound_class"],
+            "top_selective_target": top_target,
+            "strongest_off_target": strongest_off_target,
+            "top_selective_probability": summary["top_selective_probability"],
+            "multi_target_prob_all_3": summary["multi_target_prob_all_3"],
+            "non_inhibitor_prob": summary["non_inhibitor_prob"],
+            "selectivity_ratio": summary.get("selectivity_ratio"),
+        },
+        "enzymes": enzyme_rows,
+    }
+
 def home(request):
     return JsonResponse({"message": "Welcome to the Django API!"})
 
@@ -319,6 +466,7 @@ def upload_akr_dataset(request):
             return Response({"error": f"Failed to resolve IUPAC name: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         response_payload = {}
+        model_level_results = {}
         history_entries = []
 
         for current_model_name in target_models:
@@ -353,6 +501,9 @@ def upload_akr_dataset(request):
                 "properties": properties,
                 "shap_plot": shap_plot,
             }
+            model_level_results[current_model_name] = {
+                "prediction": float(prediction),
+            }
             history_entries.append({
                 "user_id": user_id,
                 "smiles": smiles,
@@ -373,6 +524,15 @@ def upload_akr_dataset(request):
                 PredictionHistory.objects.create(**history_entry)
         except Exception as e:
             return Response({"error": f"Failed to save prediction history: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        if model_name == "ALL":
+            response_payload["SELECTIVITY"] = _build_selectivity_payload(
+                smiles=smiles,
+                cas=cas,
+                input_type=inputType,
+                iupac_name=iupac_name,
+                model_results=model_level_results,
+            )
 
         return Response(response_payload, status=status.HTTP_200_OK)
 

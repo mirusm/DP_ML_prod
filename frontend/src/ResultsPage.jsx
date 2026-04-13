@@ -3,16 +3,20 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import PropertyDisplay from "./PropertyDisplay";
 import { Menu } from "lucide-react";
+import { useAuth } from "./contexts/AuthContext";
+import { db } from "./firebase/firebase";
+import { collection, getDocs, query, where } from "firebase/firestore";
 
 const ResultPage = () => {
   const CLASSIFICATION_MODELS = ["ALR1", "AKR1C1", "AKR1C2", "AKR1C3"];
-  const TAB_MODELS = ["ALR1", "ALR2", "AKR1C1", "AKR1C2", "AKR1C3"];
+  const TAB_MODELS = ["ALR1", "ALR2", "AKR1C1", "AKR1C2", "AKR1C3", "SELECTIVITY"];
   const TAB_LABELS = {
     ALR1: "ALR1 Results",
     ALR2: "ALR2 Results",
     AKR1C1: "AKR1C1 Results",
     AKR1C2: "AKR1C2 Results",
     AKR1C3: "AKR1C3 Results",
+    SELECTIVITY: "Selectivity Results",
   };
   const location = useLocation();
   const results = location.state?.results || [];
@@ -33,6 +37,16 @@ const ResultPage = () => {
   });
   const resultsPerPage = 5;
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const [detailSelectivityResult, setDetailSelectivityResult] = useState(null);
+  const [isLoadingDetailSelectivity, setIsLoadingDetailSelectivity] = useState(false);
+
+  const SELECTIVITY_THRESHOLD = 0.3;
+  const INHIBITION_THRESHOLD = 0.65;
+  const OFF_TARGET_THRESHOLD = 0.35;
+  const NON_INHIBITOR_THRESHOLD = 0.6;
+  const PAN_INHIBITOR_MIN = 0.6;
+  const SELECTIVITY_CLASS_THRESHOLD = 0.3;
 
   const isClassificationModel = (modelName) =>
     CLASSIFICATION_MODELS.includes((modelName || "").toUpperCase());
@@ -101,7 +115,7 @@ const ResultPage = () => {
 
   const visibleTabModels = (() => {
     if (origin.startsWith("new-prediction-akrc")) {
-      return availableModels.filter((model) => model.startsWith("AKR"));
+      return availableModels.filter((model) => model.startsWith("AKR") || model === "SELECTIVITY");
     }
     if (origin === "new-prediction") {
       return availableModels.filter((model) => model.startsWith("ALR"));
@@ -124,6 +138,7 @@ const ResultPage = () => {
     return acc;
   }, {});
   const currentResults = modelResults[activeTab] || [];
+  const isSelectivityTab = activeTab === "SELECTIVITY";
   const totalPages = Math.ceil(currentResults.length / resultsPerPage);
   const startIndex = (currentPage - 1) * resultsPerPage;
   const endIndex = startIndex + resultsPerPage;
@@ -290,7 +305,22 @@ const ResultPage = () => {
     }
   };
 
-  const getPredictionColorClass = (model, value) => {
+  const getPredictionColorClass = (model, value, efficiency) => {
+    const normalizedModel = (model || "").toUpperCase();
+    const normalizedEfficiency = (efficiency || "")
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/[_\s-]+/g, " ");
+
+    // For AKR models, use the categorical efficiency label color mapping.
+    if (normalizedModel.startsWith("AKR1C")) {
+      if (normalizedEfficiency === "high confidence inhibitor") return "bg-green-500";
+      if (normalizedEfficiency === "likely inhibitor") return "bg-yellow-500";
+      if (normalizedEfficiency === "uncertain") return "bg-orange-500";
+      if (normalizedEfficiency === "likely non inhibitor") return "bg-red-500";
+    }
+
     const val = value || 0;
     if (isClassificationModel(model)) {
       if (val < 0.5645) return 'bg-red-500';
@@ -308,6 +338,480 @@ const ResultPage = () => {
       return 'bg-red-600';
     }
   };
+
+  const getEfficiencyColorClass = (efficiency) => {
+    const label = (efficiency || "")
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/[_\s-]+/g, " ");
+    if (label === "highly effective") return "text-green-600";
+    if (label === "less effective") return "text-yellow-500";
+    if (label === "uncertain") return "text-orange-500";
+    if (label === "non effective") return "text-red-600";
+    if (label === "high confidence inhibitor") return "text-green-600";
+    if (label === "likely inhibitor") return "text-yellow-500";
+    if (label === "likely non inhibitor") return "text-red-600";
+    if (label === "effective") return "text-green-600";
+    if (label === "not effective") return "text-red-600";
+    return isDarkMode ? "text-gray-200" : "text-gray-900";
+  };
+
+  const getEfficiencyColorStyle = (efficiency) => {
+    const label = (efficiency || "")
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/[_\s-]+/g, " ");
+    if (label === "highly effective") return "#16a34a";
+    if (label === "less effective") return "#eab308";
+    if (label === "uncertain") return "#f97316";
+    if (label === "non effective") return "#dc2626";
+    if (label === "high confidence inhibitor") return "#16a34a";
+    if (label === "likely inhibitor") return "#eab308";
+    if (label === "likely non inhibitor") return "#dc2626";
+    if (label === "effective") return "green";
+    if (label === "not effective") return "red";
+    return isDarkMode ? "#e5e7eb" : "#111827";
+  };
+
+  const getSelectivityLabelClass = (label) => {
+    const normalized = (label || "").toLowerCase();
+    if (normalized === "highly selective") {
+      return isDarkMode ? "bg-green-900 text-green-200" : "bg-green-100 text-green-800";
+    }
+    if (normalized === "moderately selective") {
+      return isDarkMode ? "bg-yellow-900 text-yellow-200" : "bg-yellow-100 text-yellow-800";
+    }
+    if (normalized === "weakly selective") {
+      return isDarkMode ? "bg-orange-900 text-orange-200" : "bg-orange-100 text-orange-800";
+    }
+    return isDarkMode ? "bg-red-900 text-red-200" : "bg-red-100 text-red-800";
+  };
+
+  const renderSelectivityCard = (result, index, options = {}) => {
+    const isDetailMode = options.isDetailMode === true;
+    const payload = result?.selectivity || {
+      info: result?.info || {},
+      enzymes: result?.enzymes || [],
+    };
+    const info = payload.info || {};
+    const rows = payload.enzymes || [];
+    const targetName = info.top_selective_target || "N/A";
+    const strongestOffTargetFromRows =
+      rows
+        .filter((row) => row.enzyme !== targetName)
+        .sort((a, b) => (b.inhibition_probability || 0) - (a.inhibition_probability || 0))[0]
+        ?.enzyme || "N/A";
+    const strongestOffTarget = info.strongest_off_target || strongestOffTargetFromRows;
+
+    const targetProb =
+      rows.find((row) => row.enzyme === targetName)?.inhibition_probability || 0;
+    const offTargetProb =
+      rows
+        .filter((row) => row.enzyme !== targetName)
+        .reduce((max, row) => Math.max(max, row.inhibition_probability || 0), 0);
+    const computedRatio = offTargetProb > 0 ? targetProb / offTargetProb : 0;
+    const selectivityRatio = Number(
+      info.selectivity_ratio !== undefined && info.selectivity_ratio !== null
+        ? info.selectivity_ratio
+        : computedRatio
+    );
+    const ratioTooltip =
+      "Ratio = Top-target probability / strongest off-target probability.\n" +
+      "~1.0: balanced contest, likely non-selective.\n" +
+      "~2.0: weak selectivity.\n" +
+      "~5.0: solid selectivity window.\n" +
+      ">=10.0: highly specific profile.";
+
+    return (
+      <div
+        key={`${result?.smiles || "compound"}-${index}`}
+        className={`rounded-lg border ${
+          isDarkMode ? "border-gray-700 bg-gray-900" : "border-gray-200 bg-white"
+        } ${isDetailMode ? "overflow-hidden" : "p-4 sm:p-6"}`}
+      >
+        {isDetailMode && (
+          <div className="bg-blue-600 text-white p-3">
+            <h3 className="font-bold text-sm sm:text-base">Selectivity analysis</h3>
+          </div>
+        )}
+
+        <div className={`${isDetailMode ? "p-4 sm:p-6" : ""} space-y-6`}>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              {!isDetailMode && (
+                <p className={`text-xs sm:text-sm ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                  Compound #{startIndex + index + 1}
+                </p>
+              )}
+              <p className="text-sm sm:text-base break-all">
+                <span className="font-semibold">SMILES:</span> {result?.smiles || "N/A"}
+              </p>
+              <p className="text-sm sm:text-base">
+                <span className="font-semibold">CAS:</span> {result?.cas || "N/A"}
+              </p>
+            </div>
+            <span
+              className={`inline-flex items-center rounded-full px-3 py-1 text-xs sm:text-sm font-semibold ${getSelectivityLabelClass(
+                info.selectivity_label
+              )}`}
+            >
+              {info.selectivity_label || "non-selective"}
+            </span>
+          </div>
+
+          {isDetailMode ? (
+            <div className={`rounded-lg border overflow-hidden ${isDarkMode ? "border-gray-700" : "border-blue-100"}`}>
+              <div className="bg-blue-600 text-white p-3">
+                <h4 className="font-bold text-sm sm:text-base">Main verdict</h4>
+              </div>
+              <div className={`p-4 sm:p-5 ${isDarkMode ? "bg-gray-800" : "bg-blue-50"}`}>
+                <h3 className={`text-lg sm:text-xl font-bold ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}>
+                  {info.verdict || "Selectivity result unavailable"}
+                </h3>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <span className={`text-sm sm:text-base ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
+                    Selectivity probability: <strong>{formatNumber((info.confidence_score || 0) * 100)}%</strong>
+                  </span>
+                  <span className={`text-sm sm:text-base ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
+                    Top target: <strong>{info.top_selective_target || "N/A"}</strong>
+                  </span>
+                  <span className={`text-sm sm:text-base ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
+                    Selectivity ratio: <strong>{formatNumber(selectivityRatio)}</strong> ({targetName} vs {strongestOffTarget})
+                    <span
+                      className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-white text-xs cursor-help"
+                      title={ratioTooltip}
+                      aria-label="Selectivity ratio explanation"
+                    >
+                      i
+                    </span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div
+              className={`rounded-lg border p-4 sm:p-5 ${
+                isDarkMode ? "border-gray-700 bg-gray-800" : "border-blue-100 bg-blue-50"
+              }`}
+            >
+              <p className="text-xs sm:text-sm uppercase tracking-wide text-blue-500 mb-2">Main verdict</p>
+              <h3 className={`text-lg sm:text-xl font-bold ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}>
+                {info.verdict || "Selectivity result unavailable"}
+              </h3>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <span className={`text-sm sm:text-base ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
+                  Selectivity probability: <strong>{formatNumber((info.confidence_score || 0) * 100)}%</strong>
+                </span>
+                <span className={`text-sm sm:text-base ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
+                  Top target: <strong>{info.top_selective_target || "N/A"}</strong>
+                </span>
+                <span className={`text-sm sm:text-base ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
+                  Selectivity ratio: <strong>{formatNumber(selectivityRatio)}</strong> ({targetName} vs {strongestOffTarget})
+                  <span
+                    className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-white text-xs cursor-help"
+                    title={ratioTooltip}
+                    aria-label="Selectivity ratio explanation"
+                  >
+                    i
+                  </span>
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div className={`rounded-lg border ${isDetailMode ? "overflow-hidden" : "p-4 sm:p-5"} ${isDarkMode ? "border-gray-700" : "border-gray-200"}`}>
+            {isDetailMode ? (
+              <>
+                <div className="bg-blue-600 text-white p-3">
+                  <h4 className="font-bold text-sm sm:text-base">Inhibition vs Selectivity</h4>
+                </div>
+                <div className={`p-4 sm:p-5 ${isDarkMode ? "bg-gray-800" : "bg-white"}`}>
+                  <div className="space-y-4">
+                    {rows.map((row) => {
+                      const inhibitionPercent = Math.max(0, Math.min(100, (row.inhibition_probability || 0) * 100));
+                      const selectivityPercent = Math.max(0, Math.min(100, (row.selectivity_probability || 0) * 100));
+                      return (
+                        <div key={row.enzyme} className="space-y-2">
+                          <div className="flex justify-between text-xs sm:text-sm">
+                            <span className="font-semibold">{row.enzyme}</span>
+                            <span>
+                              Inhibition {formatNumber(inhibitionPercent)}% | Selectivity {formatNumber(selectivityPercent)}%
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div>
+                              <div className={`w-full h-3 rounded-full ${isDarkMode ? "bg-gray-700" : "bg-gray-200"}`}>
+                                <div className="h-3 rounded-full bg-blue-500" style={{ width: `${inhibitionPercent}%` }} />
+                              </div>
+                              <p className="text-[11px] mt-1 text-blue-500">Inhibition (p)</p>
+                            </div>
+                            <div>
+                              <div className={`w-full h-3 rounded-full ${isDarkMode ? "bg-gray-700" : "bg-gray-200"}`}>
+                                <div className="h-3 rounded-full bg-emerald-500" style={{ width: `${selectivityPercent}%` }} />
+                              </div>
+                              <p className="text-[11px] mt-1 text-emerald-500">Selectivity (sel_prob)</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <h4 className={`font-bold mb-4 text-sm sm:text-base ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}>
+                  Inhibition vs Selectivity
+                </h4>
+                <div className="space-y-4">
+                  {rows.map((row) => {
+                    const inhibitionPercent = Math.max(0, Math.min(100, (row.inhibition_probability || 0) * 100));
+                    const selectivityPercent = Math.max(0, Math.min(100, (row.selectivity_probability || 0) * 100));
+                    return (
+                      <div key={row.enzyme} className="space-y-2">
+                        <div className="flex justify-between text-xs sm:text-sm">
+                          <span className="font-semibold">{row.enzyme}</span>
+                          <span>
+                            Inhibition {formatNumber(inhibitionPercent)}% | Selectivity {formatNumber(selectivityPercent)}%
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <div className={`w-full h-3 rounded-full ${isDarkMode ? "bg-gray-700" : "bg-gray-200"}`}>
+                              <div className="h-3 rounded-full bg-blue-500" style={{ width: `${inhibitionPercent}%` }} />
+                            </div>
+                            <p className="text-[11px] mt-1 text-blue-500">Inhibition (p)</p>
+                          </div>
+                          <div>
+                            <div className={`w-full h-3 rounded-full ${isDarkMode ? "bg-gray-700" : "bg-gray-200"}`}>
+                              <div className="h-3 rounded-full bg-emerald-500" style={{ width: `${selectivityPercent}%` }} />
+                            </div>
+                            <p className="text-[11px] mt-1 text-emerald-500">Selectivity (sel_prob)</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+
+          {isDetailMode ? (
+            <div className={`rounded-lg border overflow-hidden ${isDarkMode ? "border-gray-700" : "border-gray-200"}`}>
+              <div className="bg-blue-600 text-white p-3">
+                <h4 className="font-bold text-sm sm:text-base">Per-enzyme probabilities</h4>
+              </div>
+              <div className={`p-4 sm:p-5 ${isDarkMode ? "bg-gray-800" : "bg-white"}`}>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {rows.map((row) => (
+                    <div
+                      key={`${row.enzyme}-card`}
+                      className={`rounded-lg border p-4 ${isDarkMode ? "border-gray-700 bg-gray-900" : "border-gray-200 bg-white"}`}
+                    >
+                      <h5 className="font-bold mb-2">{row.enzyme}</h5>
+                      <p className="text-sm">Inhibition probability: {formatNumber((row.inhibition_probability || 0) * 100)}%</p>
+                      <p className="text-sm">Selectivity probability: {formatNumber((row.selectivity_probability || 0) * 100)}%</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {rows.map((row) => (
+                <div
+                  key={`${row.enzyme}-card`}
+                  className={`rounded-lg border p-4 ${isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white"}`}
+                >
+                  <h5 className="font-bold mb-2">{row.enzyme}</h5>
+                  <p className="text-sm">Inhibition probability: {formatNumber((row.inhibition_probability || 0) * 100)}%</p>
+                  <p className="text-sm">Selectivity probability: {formatNumber((row.selectivity_probability || 0) * 100)}%</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const buildSelectivityFromAkrRows = (rows, smiles, cas, iupacName) => {
+    const pMap = {
+      AKR1C1: Number(rows.find((r) => (r.model_name || "").toUpperCase() === "AKR1C1")?.prediction || 0),
+      AKR1C2: Number(rows.find((r) => (r.model_name || "").toUpperCase() === "AKR1C2")?.prediction || 0),
+      AKR1C3: Number(rows.find((r) => (r.model_name || "").toUpperCase() === "AKR1C3")?.prediction || 0),
+    };
+
+    const p1 = pMap.AKR1C1;
+    const p2 = pMap.AKR1C2;
+    const p3 = pMap.AKR1C3;
+
+    const selMap = {
+      AKR1C1: p1 * (1 - p2) * (1 - p3),
+      AKR1C2: p2 * (1 - p1) * (1 - p3),
+      AKR1C3: p3 * (1 - p1) * (1 - p2),
+    };
+
+    const topTarget = Object.keys(selMap).reduce((best, key) =>
+      selMap[key] > selMap[best] ? key : best
+    , "AKR1C1");
+    const topProb = selMap[topTarget];
+    const nonInhibitorProb = (1 - p1) * (1 - p2) * (1 - p3);
+    const panInhibitorProb = p1 * p2 * p3;
+
+    let compoundClass = "uncertain";
+    if (nonInhibitorProb > NON_INHIBITOR_THRESHOLD) {
+      compoundClass = "non-inhibitor";
+    } else if (Math.min(p1, p2, p3) > PAN_INHIBITOR_MIN) {
+      compoundClass = "pan-inhibitor";
+    } else if (topProb > SELECTIVITY_CLASS_THRESHOLD && pMap[topTarget] > INHIBITION_THRESHOLD) {
+      compoundClass = `selective_${topTarget}`;
+    }
+
+    const offTargets = ["AKR1C1", "AKR1C2", "AKR1C3"].filter((x) => x !== topTarget);
+    const strongestOffTarget = offTargets.reduce((best, key) =>
+      pMap[key] > pMap[best] ? key : best
+    , offTargets[0]);
+    const maxOff = Math.max(pMap[offTargets[0]], pMap[offTargets[1]]);
+    const ratio = pMap[topTarget] / (maxOff + 1e-6);
+
+    let selectivityLabel = "non-selective";
+    if (ratio > 10 && pMap[topTarget] > 0.75 && maxOff < 0.25) {
+      selectivityLabel = "highly selective";
+    } else if (ratio > 5 && pMap[topTarget] > INHIBITION_THRESHOLD && maxOff < OFF_TARGET_THRESHOLD) {
+      selectivityLabel = "moderately selective";
+    } else if (ratio > 2 && pMap[topTarget] > 0.5) {
+      selectivityLabel = "weakly selective";
+    }
+
+    const verdict =
+      selectivityLabel !== "non-selective"
+        ? `This compound is selective for ${topTarget}`
+        : "This compound is non-selective across AKR1C enzymes";
+
+    return {
+      smiles,
+      cas,
+      model_name: "SELECTIVITY",
+      info: {
+        iupac_name: iupacName || "N/A",
+        verdict,
+        confidence_score: Number(topProb.toFixed(5)),
+        selectivity_label: selectivityLabel,
+        compound_class: compoundClass,
+        top_selective_target: topTarget,
+        strongest_off_target: strongestOffTarget,
+        top_selective_probability: Number(topProb.toFixed(5)),
+        multi_target_prob_all_3: Number(panInhibitorProb.toFixed(5)),
+        non_inhibitor_prob: Number(nonInhibitorProb.toFixed(5)),
+        selectivity_ratio: Number(ratio.toFixed(5)),
+      },
+      selectivity: {
+        info: {
+          iupac_name: iupacName || "N/A",
+          verdict,
+          confidence_score: Number(topProb.toFixed(5)),
+          selectivity_label: selectivityLabel,
+          compound_class: compoundClass,
+          top_selective_target: topTarget,
+          strongest_off_target: strongestOffTarget,
+          top_selective_probability: Number(topProb.toFixed(5)),
+          multi_target_prob_all_3: Number(panInhibitorProb.toFixed(5)),
+          non_inhibitor_prob: Number(nonInhibitorProb.toFixed(5)),
+          selectivity_ratio: Number(ratio.toFixed(5)),
+        },
+        enzymes: [
+          { enzyme: "AKR1C1", inhibition_probability: Number(p1.toFixed(5)), selectivity_probability: Number(selMap.AKR1C1.toFixed(5)) },
+          { enzyme: "AKR1C2", inhibition_probability: Number(p2.toFixed(5)), selectivity_probability: Number(selMap.AKR1C2.toFixed(5)) },
+          { enzyme: "AKR1C3", inhibition_probability: Number(p3.toFixed(5)), selectivity_probability: Number(selMap.AKR1C3.toFixed(5)) },
+        ],
+      },
+    };
+  };
+
+  useEffect(() => {
+    const loadDetailSelectivity = async () => {
+      if (!selectedResult) {
+        setDetailSelectivityResult(null);
+        return;
+      }
+
+      const modelName = (selectedResult.model_name || selectedResult.model || "").toUpperCase();
+      if (!modelName.startsWith("AKR1C")) {
+        setDetailSelectivityResult(null);
+        return;
+      }
+
+      if (selectedResult.selectivity) {
+        setDetailSelectivityResult(selectedResult);
+        return;
+      }
+
+      if (!currentUser) {
+        setDetailSelectivityResult(null);
+        return;
+      }
+
+      setIsLoadingDetailSelectivity(true);
+      try {
+        const predictionsRef = collection(db, `users/${currentUser.uid}/predictions`);
+        let docs = [];
+
+        if (selectedResult.run_id) {
+          const runQuery = query(predictionsRef, where("run_id", "==", selectedResult.run_id));
+          const runSnap = await getDocs(runQuery);
+          docs = runSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        }
+
+        if (docs.length === 0 && selectedResult.smiles) {
+          const smilesQuery = query(predictionsRef, where("smiles", "==", selectedResult.smiles));
+          const smilesSnap = await getDocs(smilesQuery);
+          docs = smilesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+          if (selectedResult.cas) {
+            docs = docs.filter((d) => (d.cas || "") === selectedResult.cas);
+          }
+        }
+
+        const akrDocs = docs.filter((d) => ["AKR1C1", "AKR1C2", "AKR1C3"].includes((d.model_name || "").toUpperCase()));
+        const latestByModel = {};
+        akrDocs
+          .sort((a, b) => {
+            const ad = a.date?.toDate ? a.date.toDate() : new Date(a.date || 0);
+            const bd = b.date?.toDate ? b.date.toDate() : new Date(b.date || 0);
+            return bd - ad;
+          })
+          .forEach((row) => {
+            const key = (row.model_name || "").toUpperCase();
+            if (!latestByModel[key]) {
+              latestByModel[key] = row;
+            }
+          });
+
+        const trio = [latestByModel.AKR1C1, latestByModel.AKR1C2, latestByModel.AKR1C3].filter(Boolean);
+        if (trio.length === 3) {
+          const computed = buildSelectivityFromAkrRows(
+            trio,
+            selectedResult.smiles,
+            selectedResult.cas,
+            selectedResult.info?.iupac_name
+          );
+          setDetailSelectivityResult(computed);
+        } else {
+          setDetailSelectivityResult(null);
+        }
+      } catch {
+        setDetailSelectivityResult(null);
+      } finally {
+        setIsLoadingDetailSelectivity(false);
+      }
+    };
+
+    loadDetailSelectivity();
+  }, [selectedResult, currentUser]);
 
   if (!singleResult && (!results || results.length === 0)) {
     return (
@@ -451,22 +955,21 @@ const ResultPage = () => {
                     <div
                       className={`w-20 sm:w-24 h-20 sm:h-24 rounded-full flex items-center justify-center text-white font-bold text-lg sm:text-xl mb-2 ${getPredictionColorClass(
                         selectedResult.model || selectedResult.model_name,
-                        selectedResult.predictedValue || selectedResult.prediction
+                        selectedResult.predictedValue || selectedResult.prediction,
+                        selectedResult.efficiency
                       )}`}
                     >
                       {isClassificationModel(selectedResult.model || selectedResult.model_name)
                         ? `${formatNumber((selectedResult.predictedValue || selectedResult.prediction || 0) * 100)}%`
                         : formatNumber(selectedResult.predictedValue || selectedResult.prediction || 0)}
                     </div>
-                    <p
-                      className={`font-semibold text-sm sm:text-base text-center ${
-                        selectedResult.efficiency === "Effective" ? "text-green-600" : "text-red-600"
-                      }`}
-                    >
+                    <p className={`font-semibold text-sm sm:text-base text-center ${getEfficiencyColorClass(selectedResult.efficiency)}`}>
                       {selectedResult.efficiency || "N/A"}
                     </p>
                     <p className={`font-semibold text-sm sm:text-base text-center ${isDarkMode ? "bg-gray-800" : "bg-white"}`}>
-                      {isClassificationModel(selectedResult.model || selectedResult.model_name)
+                      {(selectedResult.model || selectedResult.model_name || "").toUpperCase().startsWith("AKR1C")
+                        ? "(Predicted probability)"
+                        : isClassificationModel(selectedResult.model || selectedResult.model_name)
                         ? "(Confidence score)"
                         : "(Predicted value)"}
                     </p>
@@ -599,6 +1102,18 @@ const ResultPage = () => {
             </div>
           </div>
 
+          {(selectedResult.model_name || selectedResult.model || "").toUpperCase().startsWith("AKR1C") && (
+            <div className="mt-6">
+              {isLoadingDetailSelectivity ? (
+                <div className={`rounded-lg border p-4 ${isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white"}`}>
+                  <p className="text-sm">Loading selectivity analysis...</p>
+                </div>
+              ) : detailSelectivityResult ? (
+                <div>{renderSelectivityCard(detailSelectivityResult, 0, { isDetailMode: true })}</div>
+              ) : null}
+            </div>
+          )}
+
           {showImagePopup && popupImageSrc && (
             <div
               className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -687,7 +1202,15 @@ const ResultPage = () => {
         </div>
 
         <div className={`rounded-lg shadow p-4 sm:p-6 ${isDarkMode ? "bg-gray-800 text-gray-300" : "bg-white"}`}>
-          {paginatedResults.length === 0 ? (
+          {isSelectivityTab ? (
+            paginatedResults.length === 0 ? (
+              <p className="text-center py-4 text-sm sm:text-base">
+                No selectivity results available yet. Run AKR prediction with all three enzymes.
+              </p>
+            ) : (
+              <div className="space-y-6">{paginatedResults.map((result, idx) => renderSelectivityCard(result, idx))}</div>
+            )
+          ) : paginatedResults.length === 0 ? (
             <p className="text-center py-4 text-sm sm:text-base">
               No results available for {activeTab}. Try running a new prediction{" "}
               <Link to="/new-prediction" className="text-blue-600 hover:underline">
@@ -732,9 +1255,7 @@ const ResultPage = () => {
                         </td>
                         <td
                           className="p-2 sm:p-3 text-xs sm:text-sm"
-                          style={{
-                            color: result.efficiency === "Effective" ? "green" : "red",
-                          }}
+                          style={{ color: getEfficiencyColorStyle(result.efficiency) }}
                         >
                           {result.efficiency || "N/A"}
                         </td>
@@ -783,6 +1304,32 @@ const ResultPage = () => {
                 </button>
               </div>
             </>
+          )}
+
+          {isSelectivityTab && totalPages > 1 && (
+            <div className="flex flex-wrap justify-between items-center mt-4 gap-2">
+              <button
+                onClick={handlePreviousPage}
+                disabled={currentPage === 1}
+                className={`px-3 sm:px-4 py-2 rounded text-sm sm:text-base text-white cursor-pointer ${
+                  currentPage === 1 ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+                }`}
+              >
+                Previous
+              </button>
+              <span className="text-sm sm:text-base">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages}
+                className={`px-3 sm:px-4 py-2 rounded text-sm sm:text-base text-white cursor-pointer ${
+                  currentPage === totalPages ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+                }`}
+              >
+                Next
+              </button>
+            </div>
           )}
         </div>
 

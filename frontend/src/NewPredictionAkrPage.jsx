@@ -104,6 +104,9 @@ const NewPredictionAkrPage = ({ onResults }) => {
     try {
       const allResults = [];
       for (const entry of pipelineEntries) {
+        const runId = (globalThis.crypto && globalThis.crypto.randomUUID)
+          ? globalThis.crypto.randomUUID()
+          : `run_${Date.now()}_${Math.random().toString(16).slice(2)}`;
         const response = await fetch(`${API_URL}/upload-akrc/`, {
           method: "POST",
           headers: {
@@ -131,30 +134,52 @@ const NewPredictionAkrPage = ({ onResults }) => {
         }
 
         const data = await response.json();
-        allResults.push(data);
+        allResults.push({ data, runId });
       }
 
-      const formattedResults = allResults.flatMap((result) =>
-        Object.entries(result).map(([modelName, payload]) => ({
-          date: new Date(),
-          smiles: payload?.smiles || "",
-          cas: payload?.cas || "",
-          prediction: payload?.info?.prediction || 0,
-          efficiency: payload?.info?.efficiency || "N/A",
-          numHeavyAtoms: payload?.properties?.num_heavy_atoms || 0,
-          molecule_image: payload?.molecule_image || "",
-          descriptors: payload?.descriptors || {},
-          properties: payload?.properties || {},
-          shap_plot: payload?.shap_plot || "",
-          info: payload?.info || {},
-          model_name: modelName,
-          formula: payload?.info?.formula || "",
-          iupac_name: payload?.info?.iupac_name || "",
-        }))
+      const formattedResults = allResults.flatMap(({ data, runId }) =>
+        Object.entries(data).map(([modelName, payload]) => {
+          if (modelName === "SELECTIVITY") {
+            return {
+              date: new Date(),
+              run_id: runId,
+              smiles: payload?.smiles || "",
+              cas: payload?.cas || "",
+              prediction: payload?.info?.confidence_score || 0,
+              efficiency: payload?.info?.selectivity_label || "N/A",
+              model_name: "SELECTIVITY",
+              info: payload?.info || {},
+              selectivity: payload || {},
+              formula: "",
+              iupac_name: payload?.info?.iupac_name || "",
+            };
+          }
+
+          return {
+            date: new Date(),
+            run_id: runId,
+            smiles: payload?.smiles || "",
+            cas: payload?.cas || "",
+            prediction: payload?.info?.prediction || 0,
+            efficiency: payload?.info?.efficiency || "N/A",
+            numHeavyAtoms: payload?.properties?.num_heavy_atoms || 0,
+            molecule_image: payload?.molecule_image || "",
+            descriptors: payload?.descriptors || {},
+            properties: payload?.properties || {},
+            shap_plot: payload?.shap_plot || "",
+            info: payload?.info || {},
+            model_name: modelName,
+            formula: payload?.info?.formula || "",
+            iupac_name: payload?.info?.iupac_name || "",
+          };
+        })
       );
 
       const predictionsRef = collection(db, `users/${currentUser.uid}/predictions`);
       for (const result of formattedResults) {
+        if ((result.model_name || "").toUpperCase() === "SELECTIVITY") {
+          continue;
+        }
         await addDoc(predictionsRef, result);
       }
 

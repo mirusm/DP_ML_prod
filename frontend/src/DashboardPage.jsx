@@ -23,6 +23,24 @@ const DashboardPage = () => {
   const isClassificationModel = (modelName) =>
     CLASSIFICATION_MODELS.includes((modelName || "").toUpperCase());
 
+  const getEfficiencyColor = (efficiency) => {
+    const label = (efficiency || "")
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/[_\s-]+/g, " ");
+    if (label === "highly effective") return "#16a34a";
+    if (label === "less effective") return "#eab308";
+    if (label === "uncertain") return "#f97316";
+    if (label === "non effective") return "#dc2626";
+    if (label === "high confidence inhibitor") return "#16a34a";
+    if (label === "likely inhibitor") return "#eab308";
+    if (label === "likely non inhibitor") return "#dc2626";
+    if (label === "effective") return "green";
+    if (label === "not effective") return "red";
+    return isDarkMode ? "#e5e7eb" : "#111827";
+  };
+
   useEffect(() => {
     const handleThemeChange = (e) => {
       setIsDarkMode(e.detail.isDark);
@@ -89,6 +107,7 @@ const DashboardPage = () => {
     const mappedResult = {
       smiles: prediction.smiles,
       cas: prediction.cas,
+      run_id: prediction.run_id,
       predictedValue: prediction.prediction,
       efficiency: prediction.efficiency,
       molecule_image: prediction.molecule_image,
@@ -255,16 +274,7 @@ const DashboardPage = () => {
                       </td>
                       <td
                         className="p-2 sm:p-3 text-xs sm:text-sm hidden md:table-cell whitespace-nowrap"
-                        style={{
-                          color:
-                            item.efficiency === "Effective"
-                              ? "green"
-                              : item.efficiency === "Not Effective"
-                              ? "red"
-                              : isDarkMode
-                              ? "#e5e7eb"
-                              : "#111827",
-                        }}
+                        style={{ color: getEfficiencyColor(item.efficiency) }}
                       >
                         {item.efficiency || "-"}
                       </td>
