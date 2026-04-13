@@ -40,6 +40,10 @@ const ResultPage = () => {
   const { currentUser } = useAuth();
   const [detailSelectivityResult, setDetailSelectivityResult] = useState(null);
   const [isLoadingDetailSelectivity, setIsLoadingDetailSelectivity] = useState(false);
+  const [xsmilesResult, setXsmilesResult] = useState(null);
+  const [isLoadingXsmiles, setIsLoadingXsmiles] = useState(false);
+  const [xsmilesError, setXsmilesError] = useState("");
+  const API_URL = import.meta.env.VITE_API_URL || "/api";
 
   const SELECTIVITY_THRESHOLD = 0.3;
   const INHIBITION_THRESHOLD = 0.65;
@@ -638,6 +642,10 @@ const ResultPage = () => {
     );
   };
 
+  const xsmilesScoreTooltip =
+    "Score interpretation: values above 0 support inhibition, values below 0 oppose inhibition. " +
+    "The larger the absolute score, the stronger the influence. Scores close to 0 indicate a weak or unclear effect.";
+
   const buildSelectivityFromAkrRows = (rows, smiles, cas, iupacName) => {
     const pMap = {
       AKR1C1: Number(rows.find((r) => (r.model_name || "").toUpperCase() === "AKR1C1")?.prediction || 0),
@@ -812,6 +820,61 @@ const ResultPage = () => {
 
     loadDetailSelectivity();
   }, [selectedResult, currentUser]);
+
+  useEffect(() => {
+    const loadXsmilesDetail = async () => {
+      if (!selectedResult) {
+        setXsmilesResult(null);
+        setXsmilesError("");
+        return;
+      }
+
+      const modelName = (selectedResult.model_name || selectedResult.model || "").toUpperCase();
+      if (!modelName.startsWith("AKR1C")) {
+        setXsmilesResult(null);
+        setXsmilesError("");
+        return;
+      }
+
+      if (!selectedResult.smiles) {
+        setXsmilesResult(null);
+        setXsmilesError("SMILES not available for XSMILES perturbation analysis.");
+        return;
+      }
+
+      setIsLoadingXsmiles(true);
+      setXsmilesError("");
+
+      try {
+        const response = await fetch(`${API_URL}/akrc-xsmiles/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(currentUser?.uid ? { "User-Id": currentUser.uid } : {}),
+          },
+          body: JSON.stringify({
+            smiles: selectedResult.smiles,
+            cas: selectedResult.cas || "",
+            inputType: "SMILES",
+            model_name: modelName,
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data?.error || "Failed to compute XSMILES perturbation analysis");
+        }
+        setXsmilesResult(data);
+      } catch (error) {
+        setXsmilesResult(null);
+        setXsmilesError(error?.message || "Failed to compute XSMILES perturbation analysis");
+      } finally {
+        setIsLoadingXsmiles(false);
+      }
+    };
+
+    loadXsmilesDetail();
+  }, [selectedResult, currentUser, API_URL]);
 
   if (!singleResult && (!results || results.length === 0)) {
     return (
@@ -1097,6 +1160,83 @@ const ResultPage = () => {
                     onClick={() => handleImageClick(`data:image/png;base64,${selectedResult.shap_plot}`)}
                     onError={() => console.error("Failed to load SHAP plot")}
                   />
+                </div>
+              )}
+
+              {(selectedResult.model_name || selectedResult.model || "").toUpperCase().startsWith("AKR1C") && (
+                <div className={`rounded-lg shadow overflow-hidden ${isDarkMode ? "bg-gray-800" : "bg-white"}`}>
+                  <div className="text-white p-3 bg-blue-600">
+                    <h3 className="font-bold">BRICS fragment perturbation (XSMILES)</h3>
+                  </div>
+
+                  {isLoadingXsmiles ? (
+                    <div className="p-4">
+                      <p className="text-sm">Computing perturbation heatmap...</p>
+                    </div>
+                  ) : xsmilesError ? (
+                    <div className="p-4">
+                      <p className="text-sm text-red-600">{xsmilesError}</p>
+                    </div>
+                  ) : xsmilesResult ? (
+                    <div className="p-4 space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                        <p>
+                          <span className="font-semibold">Generated perturbations:</span>{" "}
+                          {xsmilesResult.perturbations_generated ?? 0}
+                        </p>
+                      </div>
+
+                      {xsmilesResult.heatmap_png && (
+                        <img
+                          src={`data:image/png;base64,${xsmilesResult.heatmap_png}`}
+                          alt="XSMILES BRICS perturbation heatmap"
+                          className="w-full cursor-pointer"
+                          onClick={() => handleImageClick(`data:image/png;base64,${xsmilesResult.heatmap_png}`)}
+                        />
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div className={`rounded border p-3 ${isDarkMode ? "border-gray-700" : "border-gray-200"}`}>
+                          <h4 className="font-semibold mb-2 flex items-center gap-2">
+                            Top positive atoms
+                            <span
+                              className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-white text-[10px] cursor-help"
+                              title={xsmilesScoreTooltip}
+                              aria-label="Score interpretation help"
+                            >
+                              i
+                            </span>
+                          </h4>
+                          {(xsmilesResult.top_positive_atoms || []).slice(0, 8).map((row) => (
+                            <p key={`pos-${row.atom_idx}`}>
+                              Atom {row.atom_idx} ({row.symbol}): {formatNumber(row.score, 4)}
+                            </p>
+                          ))}
+                        </div>
+                        <div className={`rounded border p-3 ${isDarkMode ? "border-gray-700" : "border-gray-200"}`}>
+                          <h4 className="font-semibold mb-2 flex items-center gap-2">
+                            Top negative atoms
+                            <span
+                              className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-white text-[10px] cursor-help"
+                              title={xsmilesScoreTooltip}
+                              aria-label="Score interpretation help"
+                            >
+                              i
+                            </span>
+                          </h4>
+                          {(xsmilesResult.top_negative_atoms || []).slice(0, 8).map((row) => (
+                            <p key={`neg-${row.atom_idx}`}>
+                              Atom {row.atom_idx} ({row.symbol}): {formatNumber(row.score, 4)}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4">
+                      <p className="text-sm">No perturbation data available.</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

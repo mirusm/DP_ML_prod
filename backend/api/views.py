@@ -13,6 +13,7 @@ from .functions import (
     predict_xgboost,
     predict_svr,
     predict_classifier,
+    generate_akr_fragment_perturbation_xsmiles,
     cas_to_smiles,
     get_molecular_properties,
     get_molecule_info,
@@ -538,6 +539,47 @@ def upload_akr_dataset(request):
 
     except Exception as e:
         return Response({"error": f"Server error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+def akr_fragment_perturbation(request):
+    try:
+        smiles = request.data.get('smiles')
+        cas = request.data.get('cas')
+        input_type = request.data.get('inputType')
+        model_name = (request.data.get('model_name') or '').upper()
+
+        if model_name not in AKR_MODELS:
+            return Response({"error": f"Model {model_name} is not configured for XSMILES perturbation"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if input_type == 'CAS' and not smiles:
+            if not cas:
+                return Response({"error": "CAS code is required for CAS input"}, status=status.HTTP_400_BAD_REQUEST)
+            if not cas_validation(cas):
+                return Response({"error": "Invalid CAS number"}, status=status.HTTP_400_BAD_REQUEST)
+            smiles = cas_to_smiles(cas)
+            if not smiles or smiles == "N/A":
+                return Response({"error": "Failed to resolve SMILES from CAS"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not smiles:
+            return Response({"error": "SMILES code is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        model_config = AKR_MODELS[model_name]
+        xsmiles_result = generate_akr_fragment_perturbation_xsmiles(
+            smiles=smiles,
+            model_path=model_config['model_path'],
+            train_data_path=model_config['train_data_path'],
+            required_features=model_config['required_features'],
+        )
+
+        return Response({
+            "model_name": model_name,
+            "smiles": smiles,
+            "cas": cas or "N/A",
+            **xsmiles_result,
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": f"Failed to compute BRICS perturbation heatmap: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
 def get_user_info(request):

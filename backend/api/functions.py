@@ -14,6 +14,8 @@ import joblib
 import requests
 import re
 import sys
+from rdkit.Chem import BRICS
+from rdkit.Chem.Draw import SimilarityMaps, rdMolDraw2D
 
 
 class AKR1C1RFModel:
@@ -495,4 +497,204 @@ def determine_akr_efficiency_label(enzyme, prediction):
     if p < high:
         return "Likely inhibitor"
     return "High confidence inhibitor"
+
+
+def _extract_predictive_model(loaded_model):
+    if hasattr(loaded_model, "predict_proba"):
+        return loaded_model
+    wrapped_model = getattr(loaded_model, "model", None)
+    if wrapped_model is not None and hasattr(wrapped_model, "predict_proba"):
+        return wrapped_model
+    return None
+
+
+def _build_model_row_from_mol(mol, required_features, train_medians):
+    descriptor_df = get_descriptors(mol)
+    row = {}
+
+    for feature in required_features:
+        if feature in descriptor_df.columns:
+            value = descriptor_df.iloc[0][feature]
+        else:
+            value = np.nan
+
+        if pd.isna(value):
+            value = float(train_medians.get(feature, 0.0))
+        row[feature] = float(value)
+
+    return pd.DataFrame([row], columns=required_features)
+
+
+def _predict_binary_probability(model, x_df):
+    if hasattr(model, "predict_proba"):
+        probs = model.predict_proba(x_df)[0]
+        if len(probs) > 1:
+            return float(probs[1])
+        return float(probs[0])
+
+    if hasattr(model, "decision_function"):
+        decision = float(model.decision_function(x_df)[0])
+        return float(1.0 / (1.0 + np.exp(-decision)))
+
+    return float(model.predict(x_df)[0])
+
+
+def _remove_atoms_from_mol(mol, atoms_to_remove):
+    rw = Chem.RWMol(mol)
+    for atom_idx in sorted(set(atoms_to_remove), reverse=True):
+        if 0 <= atom_idx < rw.GetNumAtoms():
+            rw.RemoveAtom(int(atom_idx))
+
+    new_mol = rw.GetMol()
+    try:
+        Chem.SanitizeMol(new_mol)
+    except Exception:
+        return None
+    return new_mol
+
+
+def _build_fragment_variants(mol):
+    n_atoms = mol.GetNumAtoms()
+    variants = []
+    seen = set()
+
+    try:
+        brics_bonds = [pair for pair, _ in BRICS.FindBRICSBonds(mol)]
+    except Exception:
+        brics_bonds = []
+
+    for atom_a, atom_b in brics_bonds:
+        rw = Chem.RWMol(mol)
+        if rw.GetBondBetweenAtoms(int(atom_a), int(atom_b)) is None:
+            continue
+
+        rw.RemoveBond(int(atom_a), int(atom_b))
+        fragments = Chem.GetMolFrags(rw.GetMol(), asMols=False, sanitizeFrags=False)
+        if len(fragments) < 2:
+            continue
+
+        for fragment in fragments:
+            removed_atoms = tuple(sorted(int(idx) for idx in fragment))
+            if len(removed_atoms) == 0 or len(removed_atoms) >= n_atoms:
+                continue
+            if removed_atoms in seen:
+                continue
+            seen.add(removed_atoms)
+
+            perturbed = _remove_atoms_from_mol(mol, removed_atoms)
+            if perturbed is not None and perturbed.GetNumAtoms() > 0:
+                variants.append((set(removed_atoms), perturbed))
+
+    if not variants:
+        for atom_idx in range(n_atoms):
+            removed_atoms = {atom_idx}
+            perturbed = _remove_atoms_from_mol(mol, removed_atoms)
+            if perturbed is not None and perturbed.GetNumAtoms() > 0:
+                variants.append((removed_atoms, perturbed))
+
+    return variants
+
+
+def _draw_similarity_heatmap_base64(mol, atom_scores):
+    # Keep near-zero contributions neutral so the background stays visually clean.
+    scores = np.array(atom_scores, dtype=float)
+    max_abs = float(np.max(np.abs(scores))) if scores.size else 0.0
+    if max_abs > 0:
+        scores = scores / max_abs
+        scores[np.abs(scores) < 0.08] = 0.0
+
+    drawer = rdMolDraw2D.MolDraw2DCairo(1200, 700)
+    draw_options = drawer.drawOptions()
+    draw_options.addAtomIndices = True
+    draw_options.clearBackground = True
+    draw_options.setBackgroundColour((1.0, 1.0, 1.0, 1.0))
+
+    SimilarityMaps.GetSimilarityMapFromWeights(
+        mol,
+        scores.tolist(),
+        drawer,
+        colorMap="bwr",
+        contourLines=6,
+        alpha=0.28,
+    )
+    drawer.FinishDrawing()
+    png = drawer.GetDrawingText()
+    return base64.b64encode(png).decode("utf-8")
+
+
+def generate_akr_fragment_perturbation_xsmiles(smiles, model_path, train_data_path, required_features):
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        raise ValueError("Invalid SMILES string")
+
+    loaded_model = load_model_with_compat(model_path)
+    model = _extract_predictive_model(loaded_model)
+    if model is None:
+        raise ValueError("Loaded model does not support probabilistic predictions")
+
+    train_data = pd.read_csv(train_data_path)
+    available_features = [feature for feature in required_features if feature in train_data.columns]
+    if not available_features:
+        raise ValueError("No required features found in training data")
+
+    train_data = train_data[available_features]
+    train_medians = train_data.median(numeric_only=True)
+
+    base_x = _build_model_row_from_mol(mol, available_features, train_medians)
+    base_probability = _predict_binary_probability(model, base_x)
+
+    variants = _build_fragment_variants(mol)
+    atom_scores = np.zeros(mol.GetNumAtoms(), dtype=float)
+    atom_counts = np.zeros(mol.GetNumAtoms(), dtype=int)
+    perturbation_rows = []
+
+    for removed_atoms, perturbed_mol in variants:
+        try:
+            perturbed_x = _build_model_row_from_mol(perturbed_mol, available_features, train_medians)
+            perturbed_probability = _predict_binary_probability(model, perturbed_x)
+        except Exception:
+            continue
+
+        delta = float(base_probability - perturbed_probability)
+        per_atom_delta = delta / max(len(removed_atoms), 1)
+
+        for atom_idx in removed_atoms:
+            atom_scores[atom_idx] += per_atom_delta
+            atom_counts[atom_idx] += 1
+
+        perturbation_rows.append({
+            "removed_atoms": sorted(list(removed_atoms)),
+            "n_removed": int(len(removed_atoms)),
+            "base_probability": float(base_probability),
+            "perturbed_probability": float(perturbed_probability),
+            "delta": delta,
+        })
+
+    averaged_scores = np.zeros_like(atom_scores)
+    valid_mask = atom_counts > 0
+    averaged_scores[valid_mask] = atom_scores[valid_mask] / atom_counts[valid_mask]
+
+    atom_table = [
+        {
+            "atom_idx": int(atom.GetIdx()),
+            "symbol": atom.GetSymbol(),
+            "score": float(averaged_scores[atom.GetIdx()]),
+            "count": int(atom_counts[atom.GetIdx()]),
+        }
+        for atom in mol.GetAtoms()
+    ]
+
+    top_positive_atoms = sorted(atom_table, key=lambda row: row["score"], reverse=True)[:10]
+    top_negative_atoms = sorted(atom_table, key=lambda row: row["score"])[:10]
+
+    heatmap_png_base64 = _draw_similarity_heatmap_base64(mol, averaged_scores.tolist())
+
+    return {
+        "base_probability": round(float(base_probability), 5),
+        "perturbations_generated": int(len(perturbation_rows)),
+        "atom_scores": [round(float(score), 6) for score in averaged_scores.tolist()],
+        "top_positive_atoms": top_positive_atoms,
+        "top_negative_atoms": top_negative_atoms,
+        "heatmap_png": heatmap_png_base64,
+    }
     
