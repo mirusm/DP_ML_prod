@@ -52,46 +52,82 @@ const InfoPage = () => {
           </h1>
         </header>
 
-        <div
-          className={`rounded-lg shadow p-4 sm:p-6 ${
-            isDarkMode ? "bg-gray-800 text-gray-300" : "bg-white"
-          }`}
-        >
-          <h2
-            className={`text-lg sm:text-2xl font-bold mb-4 ${
-              isDarkMode ? "text-gray-200" : "text-gray-800"
+        <div className="space-y-6">
+          <div
+            className={`rounded-lg shadow p-4 sm:p-6 ${
+              isDarkMode ? "bg-gray-800 text-gray-300" : "bg-white"
             }`}
           >
-            Our project: ML-powered QSAR web tool for predicting ALR1/ALR2 inhibitor efficacy
-          </h2>
-          <div className="text-sm sm:text-lg leading-relaxed space-y-4">
-            <p>
-              Modern lifestyle, including lack of physical activity, stress, and exposure to harmful
-              substances, significantly contributes to the increasing prevalence of diabetes. This
-              serious disease affects more than 422 million people worldwide, with advanced-stage
-              diabetes leading to severe complications such as kidney failure, nerve damage, and
-              cardiovascular diseases. The development of new drugs represents a complex, financially
-              demanding, and time-consuming process that requires extensive testing of active
-              compounds.
+            <p className={`text-xs sm:text-sm font-semibold uppercase tracking-wide mb-2 ${isDarkMode ? "text-blue-300" : "text-blue-600"}`}>
+              First version of the application
             </p>
-            <p>
-              The AKR1B1 enzyme plays a crucial role in the development of these late diabetic
-              complications, making its inhibition a promising target in drug development. This
-              project focuses on predicting the efficacy of chemical compounds against this enzyme
-              using Quantitative Structure-Activity Relationship (QSAR) methods combined with machine
-              learning approaches. Based on our custom-built dataset containing chemical structures
-              and their inhibitory values, we implemented and evaluated multiple machine learning
-              models, identifying the most effective one for this type of prediction.
+            <h2
+              className={`text-lg sm:text-2xl font-bold mb-4 ${
+                isDarkMode ? "text-gray-200" : "text-gray-800"
+              }`}
+            >
+              ML-powered QSAR web tool for predicting ALR1/ALR2 inhibitor efficacy
+            </h2>
+            <div className="text-sm sm:text-lg leading-relaxed space-y-4">
+              <p>
+                Modern lifestyle, including lack of physical activity, stress, and exposure to harmful
+                substances, significantly contributes to the increasing prevalence of diabetes. This
+                serious disease affects more than 422 million people worldwide, with advanced-stage
+                diabetes leading to severe complications such as kidney failure, nerve damage, and
+                cardiovascular diseases. The development of new drugs represents a complex, financially
+                demanding, and time-consuming process that requires extensive testing of active
+                compounds.
+              </p>
+              <p>
+                The AKR1B1 enzyme plays a crucial role in the development of these late diabetic
+                complications, making its inhibition a promising target in drug development. This
+                project focuses on predicting the efficacy of chemical compounds against this enzyme
+                using Quantitative Structure-Activity Relationship (QSAR) methods combined with machine
+                learning approaches. Based on our custom-built dataset containing chemical structures
+                and their inhibitory values, we implemented and evaluated multiple machine learning
+                models, identifying the most effective one for this type of prediction.
+              </p>
+              <p>
+                The outcome of our work is a web application that enables researchers to predict the
+                efficacy of a given compound along with a comprehensive analysis of its chemical
+                properties, visualization of results, and a detailed explanation of the prediction
+                based on the amount of different molecular characteristics called chemical descriptors.
+                This application has good potential to significantly accelerate and optimize the
+                development of new drugs for diabetic complications, reduce research costs, and also
+                minimize the need for animal and human testing.
+              </p>
+            </div>
+          </div>
+
+          <div
+            className={`rounded-lg shadow p-4 sm:p-6 ${
+              isDarkMode ? "bg-gray-800 text-gray-300" : "bg-white"
+            }`}
+          >
+            <p className={`text-xs sm:text-sm font-semibold uppercase tracking-wide mb-2 ${isDarkMode ? "text-emerald-300" : "text-emerald-600"}`}>
+              Second version of the application
             </p>
-            <p>
-              The outcome of our work is a web application that enables researchers to predict the
-              efficacy of a given compound along with a comprehensive analysis of its chemical
-              properties, visualization of results, and a detailed explanation of the prediction
-              based on the amount of different molecular characteristics called chemical descriptors.
-              This application has good potential to significantly accelerate and optimize the
-              development of new drugs for diabetic complications, reduce research costs, and also
-              minimize the need for animal and human testing.
-            </p>
+            <h2
+              className={`text-lg sm:text-2xl font-bold mb-4 ${
+                isDarkMode ? "text-gray-200" : "text-gray-800"
+              }`}
+            >
+              Project Expansion: AKR1C Inhibition, Selectivity and Perturbation-Based Explainability
+            </h2>
+            <div className="text-sm sm:text-lg leading-relaxed space-y-4">
+              <p>
+                As part of a follow-up master’s thesis, the original application was extended to support the prediction of inhibitor efficacy for additional members of the aldo-keto reductase family, specifically the AKR1C1, AKR1C2, and AKR1C3 enzymes.
+              </p>
+              <p>
+                The application now allows users to evaluate compounds not only for each enzyme individually, but also across all three targets simultaneously. In this combined mode, the system provides an additional layer of selectivity analysis, identifies the most likely target, and estimates whether the compound behaves selectively or non-selectively within the AKR1C family.
+              </p>
+              <p>
+                To improve interpretability and support decision-making, the application also includes an explainability module based on molecular perturbation strategies inspired by approaches such as xSMILES and BRICS fragmentation. This analysis highlights which fragments of the molecule contribute positively or negatively to the predicted activity, helping users better understand the structural factors driving the model outputs.
+              </p>
+              <p>
+                These enhancements provide deeper insight into compound behavior, support the identification of selective inhibitors, and contribute to more efficient early-stage drug discovery.
+              </p>
+            </div>
           </div>
         </div>
       </main>
