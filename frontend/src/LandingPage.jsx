@@ -57,12 +57,11 @@ const LandingPage = () => {
         <div className="flex flex-col lg:flex-row items-center container mx-auto gap-6 lg:gap-12">
           <div className="w-full lg:w-1/2">
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 text-gray-800">
-              ML-Powered <span className="text-blue-600">QSAR</span> Web Tool for Predicting ALR1
-              & ALR2 Inhibiting Efficacy
+              ML-Powered <span className="text-blue-600">QSAR</span> Web Tool for Predicting ALR1, ALR2 & Selective AKR1C1-3 Inhibiting Efficacy
             </h1>
             <p className="text-gray-700 text-sm sm:text-base mb-6 leading-relaxed">
               Our ML-Powered QSAR Web Tool leverages machine learning models to predict the
-              inhibitor efficacy of ALR1 and ALR2.
+              inhibitor efficacy of ALR1 and ALR2, as well as the selective inhibition of AKR1C1, AKR1C2, and AKR1C3.
             </p>
             <Link to="/sign-in">
               <button className="bg-blue-600 cursor-pointer text-white px-4 sm:px-6 py-2 sm:py-3 rounded text-base sm:text-lg hover:bg-blue-700 transition duration-300">

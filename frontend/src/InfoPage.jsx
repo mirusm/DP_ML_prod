@@ -122,7 +122,7 @@ const InfoPage = () => {
                 The application now allows users to evaluate compounds not only for each enzyme individually, but also across all three targets simultaneously. In this combined mode, the system provides an additional layer of selectivity analysis, identifies the most likely target, and estimates whether the compound behaves selectively or non-selectively within the AKR1C family.
               </p>
               <p>
-                To improve interpretability and support decision-making, the application also includes an explainability module based on molecular perturbation strategies inspired by approaches such as xSMILES and BRICS fragmentation. This analysis highlights which fragments of the molecule contribute positively or negatively to the predicted activity, helping users better understand the structural factors driving the model outputs.
+                To improve interpretability and support decision-making, the application also includes an explainability module based on molecular perturbation strategies using BRICS fragmentation. This analysis highlights which fragments of the molecule contribute positively or negatively to the predicted activity, helping users better understand the structural factors driving the model outputs.
               </p>
               <p>
                 These enhancements provide deeper insight into compound behavior, support the identification of selective inhibitors, and contribute to more efficient early-stage drug discovery.
